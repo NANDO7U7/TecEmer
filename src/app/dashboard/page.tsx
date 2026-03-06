@@ -8,6 +8,7 @@ import type { RecyclingLog, UGBCoupon } from '@/lib/supabase';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Accordion from '@/components/ui/Accordion';
+import NotificationSettings from '@/components/NotificationSettings';
 
 export default function DashboardPage() {
     const { user, profile, loading, refreshProfile } = useAuth();
@@ -291,6 +292,8 @@ export default function DashboardPage() {
                                 <Accordion items={couponAccordionItems} />
                             </Card>
                         )}
+                        {/* Notification Settings */}
+                        <NotificationSettings />
                     </div>
                 </div>
             </div>

@@ -5,6 +5,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { BIN_INFO, supabase } from '@/lib/supabase';
 import type { BinType } from '@/lib/supabase';
 import { useSerial } from '@/lib/useSerial';
+import { useNotifications } from '@/lib/useNotifications';
 import Button from '@/components/ui/Button';
 
 interface ScanResult {
@@ -46,6 +47,7 @@ export default function CameraScanner({ userId, onScanComplete }: CameraScannerP
     const [showConfetti, setShowConfetti] = useState(false);
 
     const { isConnected, isSupported, error: serialError, connect, sendSignal, disconnect } = useSerial();
+    const { notifyPointsClaimed } = useNotifications();
 
     // Countdown timer for QR expiration
     useEffect(() => {
@@ -251,6 +253,9 @@ export default function CameraScanner({ userId, onScanComplete }: CameraScannerP
         setShowConfetti(true);
         onScanComplete?.(qrData.material, qrData.points);
 
+        // Send push notification
+        notifyPointsClaimed(qrData.points, qrData.material);
+
         // Hide confetti after 3s
         setTimeout(() => setShowConfetti(false), 3000);
     };
@@ -430,8 +435,8 @@ export default function CameraScanner({ userId, onScanComplete }: CameraScannerP
                         {/* Countdown */}
                         <div className="text-center">
                             <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${countdown > 20 ? 'bg-green-50 text-green-700' :
-                                    countdown > 10 ? 'bg-amber-50 text-amber-700' :
-                                        'bg-red-50 text-red-700 animate-pulse'
+                                countdown > 10 ? 'bg-amber-50 text-amber-700' :
+                                    'bg-red-50 text-red-700 animate-pulse'
                                 }`}>
                                 ⏱️ Expira en: <span className="font-bold text-lg">{countdown}s</span>
                             </div>

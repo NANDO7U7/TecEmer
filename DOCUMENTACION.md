@@ -502,7 +502,6 @@ block-beta
     B3["📱 Convertir a PWA\ncon modo offline"]
     B4["📊 Panel de administración\npara gestores UGB"]
     B5["🧪 Tests unitarios y\nde integración"]
-    B6["🔔 Notificaciones push\nde eco-puntos"]
   end
 
   block:doing["🔄 EN PROCESO"]:1
@@ -524,6 +523,7 @@ block-beta
     F7["✅ Eliminación módulo\nde suscripciones"]
     F8["✅ Auth: Login, Registro\ny Cerrar Sesión"]
     F9["✅ Documentación\ntécnica oficial"]
+    F10["✅ Notificaciones push\nde eco-puntos"]
   end
 
   style backlog fill:#f0fdf4,stroke:#86efac,color:#14532d
@@ -534,7 +534,6 @@ block-beta
   style B3 fill:#ffffff,stroke:#d1d5db,color:#374151
   style B4 fill:#ffffff,stroke:#d1d5db,color:#374151
   style B5 fill:#ffffff,stroke:#d1d5db,color:#374151
-  style B6 fill:#ffffff,stroke:#d1d5db,color:#374151
   style D1 fill:#fef9c3,stroke:#facc15,color:#713f12
   style D2 fill:#fef9c3,stroke:#facc15,color:#713f12
   style D3 fill:#fef9c3,stroke:#facc15,color:#713f12
@@ -548,15 +547,16 @@ block-beta
   style F7 fill:#dcfce7,stroke:#4ade80,color:#14532d
   style F8 fill:#dcfce7,stroke:#4ade80,color:#14532d
   style F9 fill:#dcfce7,stroke:#4ade80,color:#14532d
+  style F10 fill:#dcfce7,stroke:#4ade80,color:#14532d
 ```
 
 ### Resumen de Progreso
 
 | Columna | Tareas | Porcentaje |
 |---|---|---|
-| ✅ Finalizado | 9 tareas | **47%** |
+| ✅ Finalizado | 10 tareas | **53%** |
 | 🔄 En Proceso | 4 tareas | **21%** |
-| 📋 Backlog | 6 tareas | **32%** |
+| 📋 Backlog | 5 tareas | **26%** |
 
 ### Línea de Tiempo de Iteraciones
 
@@ -596,7 +596,6 @@ timeline
 | B3 | Convertir la app a PWA con capacidad offline | Media | Ninguna |
 | B4 | Panel de administración para gestores de la UGB Store | Media | Ninguna |
 | B5 | Escribir tests unitarios y de integración | Alta | Ninguna |
-| B6 | Sistema de notificaciones push para eco-puntos | Baja | B3 |
 
 #### 🔄 En Proceso (Doing)
 
@@ -620,6 +619,7 @@ timeline
 | F7 | Eliminación completa del módulo de suscripciones y gastos | V1.5 | Feb 2026 |
 | F8 | Autenticación completa: Login, Registro y Cerrar Sesión | V1.0 → V2.0 | Feb 2026 |
 | F9 | Documentación técnica oficial del proyecto | V2.0 | Feb 2026 |
+| F10 | Notificaciones push para eco-puntos (Service Worker + hook) | V2.1 | Mar 2026 |
 
 ---
 
