@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { BIN_INFO, supabase } from '@/lib/supabase';
 import type { BinType } from '@/lib/supabase';
 import { useSerial } from '@/lib/useSerial';
@@ -12,22 +13,55 @@ interface ScanResult {
     isRecyclable: boolean;
 }
 
+interface QRData {
+    token: string;
+    logId: string;
+    material: BinType;
+    points: number;
+    expiresAt: number; // timestamp
+}
+
+type ScanPhase = 'idle' | 'scanning' | 'waiting_deposit' | 'show_qr' | 'claimed' | 'expired' | 'discard';
+
 interface CameraScannerProps {
     userId?: string;
     onScanComplete?: (material: BinType, points: number) => void;
 }
 
+function generateToken(): string {
+    return `ECO-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+}
+
 export default function CameraScanner({ userId, onScanComplete }: CameraScannerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
     const [isStreaming, setIsStreaming] = useState(false);
-    const [isScanning, setIsScanning] = useState(false);
+    const [phase, setPhase] = useState<ScanPhase>('idle');
     const [scanResult, setScanResult] = useState<ScanResult | null>(null);
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [saved, setSaved] = useState(false);
+    const [qrData, setQrData] = useState<QRData | null>(null);
+    const [countdown, setCountdown] = useState(60);
+    const [showConfetti, setShowConfetti] = useState(false);
 
     const { isConnected, isSupported, error: serialError, connect, sendSignal, disconnect } = useSerial();
+
+    // Countdown timer for QR expiration
+    useEffect(() => {
+        if (phase !== 'show_qr' || !qrData) return;
+
+        const interval = setInterval(() => {
+            const remaining = Math.max(0, Math.floor((qrData.expiresAt - Date.now()) / 1000));
+            setCountdown(remaining);
+            if (remaining <= 0) {
+                setPhase('expired');
+                clearInterval(interval);
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [phase, qrData]);
 
     const startCamera = useCallback(async () => {
         try {
@@ -54,29 +88,22 @@ export default function CameraScanner({ userId, onScanComplete }: CameraScannerP
     }, []);
 
     useEffect(() => {
-        return () => stopCamera();
+        return () => {
+            stopCamera();
+            if (timerRef.current) clearTimeout(timerRef.current);
+        };
     }, [stopCamera]);
 
-    /**
-     * LÓGICA DE DESCARTE AUTOMÁTICO (3 vías):
-     * - Si se detecta Plástico → Verde (P) → +15 puntos
-     * - Si se detecta Lata → Amarillo (L) → +20 puntos
-     * - Si NO corresponde (o baja confianza) → Negro (C) → 0 puntos
-     */
+    // 3-Way Discard Classification
     const classifyWaste = (): ScanResult => {
-        // Simulate detection: ~35% plastic, ~30% can, ~35% unidentified/other
         const roll = Math.random();
         const confidence = 0.70 + Math.random() * 0.28;
 
         if (roll < 0.35 && confidence >= 0.75) {
-            // Identified as Plastic → Verde
             return { material: 'plastico', confidence, isRecyclable: true };
         } else if (roll < 0.65 && confidence >= 0.75) {
-            // Identified as Can → Amarillo
             return { material: 'lata', confidence, isRecyclable: true };
         } else {
-            // NOT identified as recyclable → auto-discard to Negro
-            // Lower the confidence to signal uncertainty
             const discardConfidence = 0.40 + Math.random() * 0.30;
             return { material: 'comun', confidence: discardConfidence, isRecyclable: false };
         }
@@ -93,93 +120,174 @@ export default function CameraScanner({ userId, onScanComplete }: CameraScannerP
         if (!ctx) return;
 
         ctx.drawImage(video, 0, 0);
-        const imageData = canvas.toDataURL('image/jpeg', 0.8);
-        setCapturedImage(imageData);
-
-        setIsScanning(true);
+        setCapturedImage(canvas.toDataURL('image/jpeg', 0.8));
+        setPhase('scanning');
         setScanResult(null);
-        setSaved(false);
+        setQrData(null);
+        setShowConfetti(false);
 
         setTimeout(() => {
             const result = classifyWaste();
             setScanResult(result);
-            setIsScanning(false);
 
-            // Send signal to Arduino immediately
+            // Send signal to Arduino
             const binData = BIN_INFO[result.material];
             if (isConnected) {
                 sendSignal(binData.serialChar);
             }
 
-            // Save log to Supabase (points are 0 for comun)
-            if (userId) {
-                saveRecyclingLog(result.material, binData.points);
+            if (result.isRecyclable) {
+                // Phase: waiting for deposit confirmation
+                setPhase('waiting_deposit');
+
+                // After 2s "deposit confirmation", show QR
+                timerRef.current = setTimeout(async () => {
+                    const token = generateToken();
+                    const expiresAt = Date.now() + 60000; // 60 seconds
+
+                    // Insert log with qr_token (unvalidated)
+                    if (userId) {
+                        const { data } = await supabase
+                            .from('recycling_logs')
+                            .insert({
+                                user_id: userId,
+                                material: result.material,
+                                puntos_ganados: binData.points,
+                                qr_token: token,
+                                qr_validated: false,
+                                qr_expires_at: new Date(expiresAt).toISOString(),
+                            })
+                            .select('id')
+                            .single();
+
+                        setQrData({
+                            token,
+                            logId: data?.id || '',
+                            material: result.material,
+                            points: binData.points,
+                            expiresAt,
+                        });
+                    } else {
+                        setQrData({
+                            token,
+                            logId: 'demo',
+                            material: result.material,
+                            points: binData.points,
+                            expiresAt,
+                        });
+                    }
+
+                    setCountdown(60);
+                    setPhase('show_qr');
+                }, 2000);
+            } else {
+                // Basura Común — no QR, no points, just log
+                setPhase('discard');
+                if (userId) {
+                    supabase.from('recycling_logs').insert({
+                        user_id: userId,
+                        material: 'comun',
+                        puntos_ganados: 0,
+                        qr_validated: true, // auto-validated (no points)
+                    });
+                    // Increment total_scans only
+                    supabase
+                        .from('profiles')
+                        .select('total_scans')
+                        .eq('id', userId)
+                        .single()
+                        .then(({ data: profile }) => {
+                            if (profile) {
+                                supabase
+                                    .from('profiles')
+                                    .update({
+                                        total_scans: (profile.total_scans || 0) + 1,
+                                        updated_at: new Date().toISOString(),
+                                    })
+                                    .eq('id', userId);
+                            }
+                        });
+                }
             }
         }, 1500 + Math.random() * 1000);
     };
 
-    const saveRecyclingLog = async (material: BinType, points: number) => {
-        try {
-            // Insert the recycling log
-            await supabase.from('recycling_logs').insert({
-                user_id: userId,
-                material,
-                puntos_ganados: points,
-            });
+    // Claim points via QR
+    const claimPoints = async () => {
+        if (!qrData || !userId) return;
 
-            // Only update profile points if recyclable (points > 0)
-            if (points > 0) {
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('eco_puntos, total_scans')
-                    .eq('id', userId)
-                    .single();
-
-                if (profile) {
-                    await supabase
-                        .from('profiles')
-                        .update({
-                            eco_puntos: (profile.eco_puntos || 0) + points,
-                            total_scans: (profile.total_scans || 0) + 1,
-                            updated_at: new Date().toISOString(),
-                        })
-                        .eq('id', userId);
-                }
-            } else {
-                // For comun — still increment total_scans but NOT points
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('total_scans')
-                    .eq('id', userId)
-                    .single();
-
-                if (profile) {
-                    await supabase
-                        .from('profiles')
-                        .update({
-                            total_scans: (profile.total_scans || 0) + 1,
-                            updated_at: new Date().toISOString(),
-                        })
-                        .eq('id', userId);
-                }
-            }
-
-            setSaved(true);
-            onScanComplete?.(material, points);
-        } catch {
-            setSaved(false);
+        // Check expiry
+        if (Date.now() > qrData.expiresAt) {
+            setPhase('expired');
+            return;
         }
+
+        // Validate the QR in database
+        await supabase
+            .from('recycling_logs')
+            .update({ qr_validated: true })
+            .eq('id', qrData.logId)
+            .eq('qr_token', qrData.token);
+
+        // Award points to profile
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('eco_puntos, total_scans')
+            .eq('id', userId)
+            .single();
+
+        if (profile) {
+            await supabase
+                .from('profiles')
+                .update({
+                    eco_puntos: (profile.eco_puntos || 0) + qrData.points,
+                    total_scans: (profile.total_scans || 0) + 1,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', userId);
+        }
+
+        setPhase('claimed');
+        setShowConfetti(true);
+        onScanComplete?.(qrData.material, qrData.points);
+
+        // Hide confetti after 3s
+        setTimeout(() => setShowConfetti(false), 3000);
     };
 
     const resetScan = () => {
         setScanResult(null);
         setCapturedImage(null);
-        setIsScanning(false);
-        setSaved(false);
+        setPhase('idle');
+        setQrData(null);
+        setShowConfetti(false);
+        if (timerRef.current) clearTimeout(timerRef.current);
     };
 
     return (
-        <div className="w-full max-w-lg mx-auto space-y-6">
+        <div className="w-full max-w-lg mx-auto space-y-6 relative">
+            {/* Confetti overlay */}
+            {showConfetti && (
+                <div className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center">
+                    <div className="text-center animate-scale-in">
+                        {['🎉', '⭐', '🎊', '♻️', '✨'].map((emoji, i) => (
+                            <span
+                                key={i}
+                                className="absolute text-4xl animate-bounce"
+                                style={{
+                                    left: `${20 + i * 15}%`,
+                                    top: `${10 + (i % 3) * 20}%`,
+                                    animationDelay: `${i * 0.1}s`,
+                                    animationDuration: `${0.5 + i * 0.2}s`,
+                                }}
+                            >
+                                {emoji}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Arduino Connection */}
             <div className="flex items-center justify-center gap-3">
                 {isSupported && (
@@ -197,13 +305,11 @@ export default function CameraScanner({ userId, onScanComplete }: CameraScannerP
                     </p>
                 )}
             </div>
-            {serialError && (
-                <p className="text-xs text-red-500 text-center">{serialError}</p>
-            )}
+            {serialError && <p className="text-xs text-red-500 text-center">{serialError}</p>}
 
             {/* Camera Viewfinder */}
             <div className="relative rounded-3xl overflow-hidden bg-gray-900 aspect-[4/3] shadow-xl">
-                {!isStreaming && !capturedImage && (
+                {phase === 'idle' && !isStreaming && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-white/70 gap-4">
                         <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center text-4xl animate-pulse-soft">
                             📷
@@ -226,7 +332,7 @@ export default function CameraScanner({ userId, onScanComplete }: CameraScannerP
                 )}
 
                 {/* Scanning overlay */}
-                {isScanning && (
+                {phase === 'scanning' && (
                     <div className="absolute inset-0 bg-black/30">
                         <div className="scan-line" />
                         <div className="absolute inset-0 flex items-center justify-center">
@@ -237,8 +343,23 @@ export default function CameraScanner({ userId, onScanComplete }: CameraScannerP
                     </div>
                 )}
 
+                {/* Waiting deposit overlay */}
+                {phase === 'waiting_deposit' && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <div className="bg-white rounded-2xl p-6 text-center shadow-2xl mx-4 animate-fade-in">
+                            <div className="w-12 h-12 border-4 border-eco-green border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                            <p className="text-sm font-semibold text-eco-green-dark">
+                                Esperando confirmación del depósito...
+                            </p>
+                            <p className="text-xs text-eco-gray mt-1">
+                                {isConnected ? 'La compuerta se está abriendo' : 'Deposite el residuo'}
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 {/* Corner brackets */}
-                {isStreaming && !capturedImage && (
+                {isStreaming && phase === 'idle' && (
                     <>
                         <div className="absolute top-4 left-4 w-8 h-8 border-t-2 border-l-2 border-eco-green-light rounded-tl-lg" />
                         <div className="absolute top-4 right-4 w-8 h-8 border-t-2 border-r-2 border-eco-green-light rounded-tr-lg" />
@@ -250,11 +371,11 @@ export default function CameraScanner({ userId, onScanComplete }: CameraScannerP
 
             {/* Controls */}
             <div className="flex justify-center gap-3">
-                {!isStreaming ? (
+                {!isStreaming && phase === 'idle' ? (
                     <Button onClick={startCamera} variant="primary" size="lg">
                         📷 Activar Cámara
                     </Button>
-                ) : !capturedImage ? (
+                ) : phase === 'idle' ? (
                     <>
                         <Button onClick={captureAndScan} variant="primary" size="lg">
                             🔍 Escanear
@@ -263,109 +384,162 @@ export default function CameraScanner({ userId, onScanComplete }: CameraScannerP
                             ✕ Cerrar
                         </Button>
                     </>
-                ) : (
-                    <Button onClick={resetScan} variant="secondary" size="lg" disabled={isScanning}>
+                ) : ['claimed', 'expired', 'discard'].includes(phase) ? (
+                    <Button onClick={resetScan} variant="secondary" size="lg">
                         🔄 Nuevo Escaneo
                     </Button>
-                )}
+                ) : null}
             </div>
 
-            {/* Result Card */}
-            {scanResult && (
-                <div className={`rounded-3xl overflow-hidden border-2 ${BIN_INFO[scanResult.material].borderClass} shadow-lg`}>
-                    {/* Header — Green/Amber for recyclable, Red-ish for discard */}
-                    <div className={`p-6 text-white ${scanResult.isRecyclable
-                            ? `bg-gradient-to-r ${BIN_INFO[scanResult.material].gradientClass}`
-                            : 'bg-gradient-to-r from-gray-700 to-gray-900'
-                        }`}>
+            {/* ===== QR VALIDATION CARD ===== */}
+            {phase === 'show_qr' && qrData && scanResult && (
+                <div className="rounded-3xl overflow-hidden border-2 border-eco-green shadow-lg animate-fade-in">
+                    <div className={`bg-gradient-to-r ${BIN_INFO[scanResult.material].gradientClass} p-5 text-white`}>
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm font-medium opacity-90">
-                                    {scanResult.isRecyclable ? '✅ Material Identificado' : '⚠️ No Identificado'}
-                                </p>
-                                <p className="text-2xl font-bold mt-1">{BIN_INFO[scanResult.material].label}</p>
+                                <p className="text-sm font-medium opacity-90">✅ Material Identificado</p>
+                                <p className="text-xl font-bold mt-1">{BIN_INFO[scanResult.material].label}</p>
                             </div>
-                            <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-3xl">
+                            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl">
                                 {BIN_INFO[scanResult.material].emoji}
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-white p-6 space-y-4">
-                        {/* Discard message for non-recyclable */}
-                        {!scanResult.isRecyclable && (
-                            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-center">
-                                <p className="text-sm text-amber-800 font-medium">
-                                    ⚠️ Residuo no identificado como reciclable.
-                                </p>
-                                <p className="text-xs text-amber-600 mt-1">
-                                    Por favor, deposítelo en el contenedor de <strong>Basura Común</strong> (Negro).
-                                </p>
+                    <div className="bg-white p-6 space-y-5">
+                        {/* QR Code */}
+                        <div className="flex flex-col items-center">
+                            <div className="bg-white p-3 rounded-2xl border-2 border-dashed border-eco-green/30 shadow-sm">
+                                <QRCodeSVG
+                                    value={JSON.stringify({
+                                        token: qrData.token,
+                                        userId,
+                                        material: qrData.material,
+                                        points: qrData.points,
+                                        ts: Date.now(),
+                                    })}
+                                    size={180}
+                                    level="M"
+                                    fgColor="#2D4F1E"
+                                    bgColor="#FFFFFF"
+                                />
                             </div>
-                        )}
+                            <p className="text-xs text-eco-gray mt-2 font-mono">{qrData.token}</p>
+                        </div>
 
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-500">Contenedor</span>
-                            <div className="flex items-center gap-2">
-                                <span className="text-lg">{BIN_INFO[scanResult.material].emoji}</span>
-                                <span className="font-semibold text-eco-green-dark">
-                                    {scanResult.material === 'plastico' ? 'Verde' : scanResult.material === 'lata' ? 'Amarillo' : 'Negro'}
-                                </span>
+                        {/* Countdown */}
+                        <div className="text-center">
+                            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${countdown > 20 ? 'bg-green-50 text-green-700' :
+                                    countdown > 10 ? 'bg-amber-50 text-amber-700' :
+                                        'bg-red-50 text-red-700 animate-pulse'
+                                }`}>
+                                ⏱️ Expira en: <span className="font-bold text-lg">{countdown}s</span>
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-500">Confianza</span>
-                            <span className={`font-semibold ${scanResult.isRecyclable ? 'text-eco-green-dark' : 'text-amber-600'}`}>
-                                {(scanResult.confidence * 100).toFixed(1)}%
-                            </span>
-                        </div>
-                        <div className="w-full bg-gray-100 rounded-full h-2">
-                            <div
-                                className={`h-2 rounded-full transition-all duration-500 ${scanResult.isRecyclable
-                                        ? `bg-gradient-to-r ${BIN_INFO[scanResult.material].gradientClass}`
-                                        : 'bg-gradient-to-r from-amber-400 to-amber-500'
-                                    }`}
-                                style={{ width: `${scanResult.confidence * 100}%` }}
-                            />
+                        {/* Points preview */}
+                        <div className="flex items-center justify-between px-2">
+                            <span className="text-sm text-gray-500">Puntos a reclamar</span>
+                            <span className="font-bold text-eco-green-dark text-xl">+{qrData.points} ⭐</span>
                         </div>
 
-                        {/* Points earned — only for recyclable */}
-                        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                            <span className="text-sm text-gray-500">Eco-Puntos</span>
-                            {scanResult.isRecyclable ? (
-                                <span className="font-bold text-eco-green-dark text-lg">
-                                    +{BIN_INFO[scanResult.material].points} ⭐
-                                </span>
-                            ) : (
-                                <span className="font-medium text-gray-400 text-sm">
-                                    Sin puntos (no reciclable)
-                                </span>
-                            )}
-                        </div>
-
-                        {/* Arduino signal */}
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-500">Señal Arduino</span>
-                            <span className={`text-sm font-mono px-3 py-1 rounded-full ${isConnected ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                {isConnected ? `✅ Enviado "${BIN_INFO[scanResult.material].serialChar}"` : '⚠️ No conectado'}
-                            </span>
-                        </div>
-
-                        {saved && (
-                            <p className="text-xs text-green-600 text-center mt-2 font-medium">
-                                ✅ Registro guardado en tu historial
-                            </p>
-                        )}
+                        {/* Claim Button */}
+                        <Button
+                            onClick={claimPoints}
+                            variant="primary"
+                            size="lg"
+                            className="w-full"
+                        >
+                            🎁 Reclamar Puntos
+                        </Button>
 
                         <p className="text-xs text-gray-400 text-center">
-                            ⚡ Clasificación por descarte • EcoScan AI UGB
+                            Presiona para validar y acreditar tus eco-puntos
                         </p>
                     </div>
                 </div>
             )}
 
-            {/* Error message */}
+            {/* ===== CLAIMED SUCCESS ===== */}
+            {phase === 'claimed' && qrData && (
+                <div className="rounded-3xl overflow-hidden border-2 border-green-400 shadow-lg animate-scale-in bg-white">
+                    <div className="p-8 text-center space-y-4">
+                        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center text-4xl mx-auto">
+                            🎉
+                        </div>
+                        <h3 className="text-2xl font-bold text-eco-green-dark">
+                            ¡Puntos validados correctamente!
+                        </h3>
+                        <p className="text-eco-gray">
+                            Se acreditaron <span className="font-bold text-eco-green-dark">+{qrData.points} ⭐</span> eco-puntos a tu cuenta.
+                        </p>
+                        <p className="text-sm text-eco-gray">
+                            Revisa tu Dashboard para ver tu saldo actualizado.
+                        </p>
+                        <div className="bg-green-50 rounded-xl p-3 text-xs text-green-700 font-mono">
+                            Token: {qrData.token} ✅
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ===== EXPIRED ===== */}
+            {phase === 'expired' && (
+                <div className="rounded-3xl overflow-hidden border-2 border-red-300 shadow-lg animate-fade-in bg-white">
+                    <div className="p-8 text-center space-y-4">
+                        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center text-3xl mx-auto">
+                            ⏰
+                        </div>
+                        <h3 className="text-xl font-bold text-red-700">Código QR Expirado</h3>
+                        <p className="text-sm text-gray-500">
+                            El tiempo de 60 segundos ha terminado. Los puntos no fueron acreditados.
+                        </p>
+                        <p className="text-xs text-gray-400">
+                            Realiza un nuevo escaneo para intentarlo de nuevo.
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* ===== DISCARD (Basura Común) ===== */}
+            {phase === 'discard' && scanResult && (
+                <div className="rounded-3xl overflow-hidden border-2 border-gray-400 shadow-lg animate-fade-in">
+                    <div className="bg-gradient-to-r from-gray-700 to-gray-900 p-6 text-white">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium opacity-90">⚠️ No Identificado</p>
+                                <p className="text-2xl font-bold mt-1">Basura Común</p>
+                            </div>
+                            <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-3xl">⚫</div>
+                        </div>
+                    </div>
+                    <div className="bg-white p-6 space-y-4">
+                        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-center">
+                            <p className="text-sm text-amber-800 font-medium">
+                                ⚠️ Residuo no identificado como reciclable.
+                            </p>
+                            <p className="text-xs text-amber-600 mt-1">
+                                Por favor, deposítelo en el contenedor de <strong>Basura Común</strong> (Negro).
+                            </p>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-500">Eco-Puntos</span>
+                            <span className="font-medium text-gray-400">Sin puntos (descarte)</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-500">Señal Arduino</span>
+                            <span className={`text-sm font-mono px-3 py-1 rounded-full ${isConnected ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                {isConnected ? '✅ Enviado "C"' : '⚠️ No conectado'}
+                            </span>
+                        </div>
+                        <p className="text-xs text-gray-400 text-center">
+                            ⚡ Descarte automático • No se genera código QR
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Error */}
             {error && (
                 <div className="bg-red-50 text-red-600 p-4 rounded-2xl text-sm text-center border border-red-100">
                     {error}
