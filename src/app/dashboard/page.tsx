@@ -52,10 +52,19 @@ export default function DashboardPage() {
 
     if (loading) {
         return (
-            <main className="min-h-screen bg-eco-cream pt-24 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="w-12 h-12 border-4 border-eco-green border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-eco-gray">Cargando...</p>
+            <main className="min-h-screen bg-eco-cream pt-20 sm:pt-24 px-4">
+                <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6 pt-4">
+                    <div className="h-8 w-48 eco-skeleton rounded-lg" />
+                    <div className="h-4 w-64 eco-skeleton rounded-lg" />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+                        <div className="md:col-span-2 h-40 eco-skeleton rounded-2xl" />
+                        <div className="h-40 eco-skeleton rounded-2xl" />
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 sm:gap-4">
+                        <div className="h-24 eco-skeleton rounded-2xl" />
+                        <div className="h-24 eco-skeleton rounded-2xl" />
+                        <div className="h-24 eco-skeleton rounded-2xl" />
+                    </div>
                 </div>
             </main>
         );
@@ -139,43 +148,48 @@ export default function DashboardPage() {
     }));
 
     return (
-        <main className="min-h-screen bg-eco-cream pt-24 pb-16 px-4">
+        <main className="min-h-screen bg-eco-cream pt-20 sm:pt-24 pb-8 sm:pb-16 px-3 sm:px-4 safe-bottom">
             <div className="max-w-6xl mx-auto page-enter">
                 {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-eco-green-dark mb-1">
+                <div className="mb-5 sm:mb-8">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-eco-green-dark mb-1">
                         ¡Hola, {profile?.full_name || user?.email?.split('@')[0]}! 👋
                     </h1>
-                    <p className="text-eco-gray">Tu panel de reciclaje EcoScan AI UGB</p>
+                    <p className="text-sm sm:text-base text-eco-gray">Tu panel de reciclaje EcoScan AI UGB</p>
                 </div>
 
                 {/* Top Row — Eco Points + Quick Scan */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    {/* Eco Points */}
-                    <Card className="md:col-span-2 !p-0 overflow-hidden">
-                        <div className="eco-gradient p-8 text-white">
-                            <div className="flex items-center justify-between">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-5 sm:mb-8">
+                    {/* Eco Points — Glassmorphism */}
+                    <div className="md:col-span-2 rounded-2xl overflow-hidden">
+                        <div className="eco-gradient p-6 sm:p-8 text-white relative overflow-hidden">
+                            {/* Glass decoration */}
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4" />
+                            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/4" />
+                            <div className="relative flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium opacity-80 mb-1">Saldo de Eco-Puntos</p>
-                                    <p className="text-5xl font-bold">{profile?.eco_puntos || 0} ⭐</p>
-                                    <p className="text-sm opacity-70 mt-2">
+                                    <p className="text-xs sm:text-sm font-medium opacity-80 mb-1">Saldo de Eco-Puntos</p>
+                                    <p className="text-4xl sm:text-5xl font-bold animate-count-up">
+                                        {profile?.eco_puntos || 0} ⭐
+                                    </p>
+                                    <p className="text-xs sm:text-sm opacity-70 mt-2">
                                         {profile?.total_scans || 0} escaneos realizados
                                     </p>
                                 </div>
-                                <div className="w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center text-5xl">
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/10 backdrop-blur-sm rounded-3xl flex items-center justify-center text-4xl sm:text-5xl">
                                     ♻️
                                 </div>
                             </div>
                         </div>
-                    </Card>
+                    </div>
 
                     {/* Quick Scan Button */}
-                    <Card className="flex flex-col items-center justify-center text-center">
-                        <div className="w-16 h-16 eco-gradient rounded-2xl flex items-center justify-center text-3xl mb-4 shadow-lg shadow-eco-green/20">
+                    <Card glass className="flex flex-col items-center justify-center text-center">
+                        <div className="w-14 h-14 sm:w-16 sm:h-16 eco-gradient rounded-2xl flex items-center justify-center text-2xl sm:text-3xl mb-3 sm:mb-4 shadow-lg shadow-eco-green/20">
                             📷
                         </div>
-                        <h3 className="font-bold text-eco-green-dark mb-2">Escanear ahora</h3>
-                        <p className="text-xs text-eco-gray mb-4">Clasifica un residuo</p>
+                        <h3 className="font-bold text-eco-green-dark mb-1 sm:mb-2">Escanear ahora</h3>
+                        <p className="text-xs text-eco-gray mb-3 sm:mb-4">Clasifica un residuo</p>
                         <Link href="/scan">
                             <Button variant="primary" size="md">
                                 Ir al Escáner
@@ -184,27 +198,27 @@ export default function DashboardPage() {
                     </Card>
                 </div>
 
-                {/* Stats Row */}
-                <div className="grid grid-cols-3 gap-4 mb-8">
-                    <Card className="text-center">
-                        <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center text-lg mx-auto mb-2 shadow-sm">🟢</div>
-                        <p className="text-2xl font-bold text-eco-green-dark">{totalPlastico}</p>
-                        <p className="text-xs text-eco-gray">Plásticos</p>
+                {/* Stats Row — Responsive 3-col */}
+                <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-5 sm:mb-8">
+                    <Card glass className="text-center !p-3 sm:!p-4">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-500 rounded-lg sm:rounded-xl flex items-center justify-center text-sm sm:text-lg mx-auto mb-1 sm:mb-2 shadow-sm">🟢</div>
+                        <p className="text-xl sm:text-2xl font-bold text-eco-green-dark animate-count-up">{totalPlastico}</p>
+                        <p className="text-[10px] sm:text-xs text-eco-gray">Plásticos</p>
                     </Card>
-                    <Card className="text-center">
-                        <div className="w-10 h-10 bg-amber-400 rounded-xl flex items-center justify-center text-lg mx-auto mb-2 shadow-sm">🟡</div>
-                        <p className="text-2xl font-bold text-eco-green-dark">{totalLata}</p>
-                        <p className="text-xs text-eco-gray">Latas</p>
+                    <Card glass className="text-center !p-3 sm:!p-4">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-400 rounded-lg sm:rounded-xl flex items-center justify-center text-sm sm:text-lg mx-auto mb-1 sm:mb-2 shadow-sm">🟡</div>
+                        <p className="text-xl sm:text-2xl font-bold text-eco-green-dark animate-count-up">{totalLata}</p>
+                        <p className="text-[10px] sm:text-xs text-eco-gray">Latas</p>
                     </Card>
-                    <Card className="text-center">
-                        <div className="w-10 h-10 bg-gray-800 rounded-xl flex items-center justify-center text-lg mx-auto mb-2 shadow-sm">⚫</div>
-                        <p className="text-2xl font-bold text-eco-green-dark">{totalComun}</p>
-                        <p className="text-xs text-eco-gray">Común</p>
+                    <Card glass className="text-center !p-3 sm:!p-4">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-800 rounded-lg sm:rounded-xl flex items-center justify-center text-sm sm:text-lg mx-auto mb-1 sm:mb-2 shadow-sm">⚫</div>
+                        <p className="text-xl sm:text-2xl font-bold text-eco-green-dark animate-count-up">{totalComun}</p>
+                        <p className="text-[10px] sm:text-xs text-eco-gray">Común</p>
                     </Card>
                 </div>
 
                 {/* Bottom Row */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                     {/* Recycling History */}
                     <Card>
                         <h3 className="font-semibold text-eco-green-dark mb-4">Historial de Reciclaje</h3>

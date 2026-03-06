@@ -508,7 +508,6 @@ block-beta
     columns 1
     D1["⚙️ Calibración de umbrales\nde confianza IA (≥75%)"]
     D2["🔌 Pruebas físicas con\nArduino y servomotores"]
-    D3["🎨 Pulido visual final\ny pruebas responsive"]
     D4["🧪 Testing de flujo\ncompleto en producción"]
   end
 
@@ -524,6 +523,7 @@ block-beta
     F8["✅ Auth: Login, Registro\ny Cerrar Sesión"]
     F9["✅ Documentación\ntécnica oficial"]
     F10["✅ Notificaciones push\nde eco-puntos"]
+    F11["✅ Pulido visual y\nresponsive mobile-first"]
   end
 
   style backlog fill:#f0fdf4,stroke:#86efac,color:#14532d
@@ -536,7 +536,6 @@ block-beta
   style B5 fill:#ffffff,stroke:#d1d5db,color:#374151
   style D1 fill:#fef9c3,stroke:#facc15,color:#713f12
   style D2 fill:#fef9c3,stroke:#facc15,color:#713f12
-  style D3 fill:#fef9c3,stroke:#facc15,color:#713f12
   style D4 fill:#fef9c3,stroke:#facc15,color:#713f12
   style F1 fill:#dcfce7,stroke:#4ade80,color:#14532d
   style F2 fill:#dcfce7,stroke:#4ade80,color:#14532d
@@ -548,14 +547,15 @@ block-beta
   style F8 fill:#dcfce7,stroke:#4ade80,color:#14532d
   style F9 fill:#dcfce7,stroke:#4ade80,color:#14532d
   style F10 fill:#dcfce7,stroke:#4ade80,color:#14532d
+  style F11 fill:#dcfce7,stroke:#4ade80,color:#14532d
 ```
 
 ### Resumen de Progreso
 
 | Columna | Tareas | Porcentaje |
 |---|---|---|
-| ✅ Finalizado | 10 tareas | **53%** |
-| 🔄 En Proceso | 4 tareas | **21%** |
+| ✅ Finalizado | 11 tareas | **58%** |
+| 🔄 En Proceso | 3 tareas | **16%** |
 | 📋 Backlog | 5 tareas | **26%** |
 
 ### Línea de Tiempo de Iteraciones
@@ -603,7 +603,6 @@ timeline
 |---|---|---|---|
 | D1 | Calibración de umbrales de confianza de la IA (≥75%) | Equipo IA | Ajustando parámetros |
 | D2 | Pruebas físicas con Arduino UNO y 3 servomotores | Equipo Hardware | Ensamblaje de prototipo |
-| D3 | Pulido visual final y pruebas en dispositivos móviles | Equipo Frontend | Revisión de responsive |
 | D4 | Testing del flujo completo escaneo → clasificación → Arduino → log | Equipo QA | En validación |
 
 #### ✅ Finalizado (Done)
@@ -620,6 +619,7 @@ timeline
 | F8 | Autenticación completa: Login, Registro y Cerrar Sesión | V1.0 → V2.0 | Feb 2026 |
 | F9 | Documentación técnica oficial del proyecto | V2.0 | Feb 2026 |
 | F10 | Notificaciones push para eco-puntos (Service Worker + hook) | V2.1 | Mar 2026 |
+| F11 | Pulido visual mobile-first y responsive (Glassmorphism, touch targets) | V2.1 | Mar 2026 |
 
 ---
 

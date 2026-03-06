@@ -4,6 +4,7 @@
 
 /* ============================================
    EcoScan AI — Global Design System
+   Mobile-First · Glassmorphism · Micro-Interactions
    ============================================ */
 
 :root {
@@ -17,7 +18,7 @@
 }
 
 /* ============================================
-   Base Styles
+   Base Styles (Mobile-First)
    ============================================ */
 body {
   font-family: 'Inter', system-ui, sans-serif;
@@ -25,6 +26,16 @@ body {
   color: #1f2937;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Prevent rubber-band scrolling on iOS */
+  overscroll-behavior: none;
+}
+
+/* Touch optimization for mobile */
+button,
+a,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 /* ============================================
@@ -32,6 +43,8 @@ body {
    ============================================ */
 html {
   scroll-behavior: smooth;
+  /* Prevent text resize on orientation change */
+  -webkit-text-size-adjust: 100%;
 }
 
 ::selection {
@@ -43,7 +56,7 @@ html {
    Custom Scrollbar
    ============================================ */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -69,9 +82,18 @@ html {
 
   .eco-glass {
     background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.5);
+  }
+
+  /* Glassmorphism Cards */
+  .eco-glass-card {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
   }
 
   .eco-card {
@@ -87,6 +109,26 @@ html {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+
+  /* UGB Branded Skeleton Loader */
+  .eco-skeleton {
+    @apply rounded-xl animate-pulse;
+    background: linear-gradient(90deg,
+        rgba(74, 124, 52, 0.06) 0%,
+        rgba(74, 124, 52, 0.12) 50%,
+        rgba(74, 124, 52, 0.06) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.8s ease-in-out infinite;
+  }
+
+  /* Safe-area padding for notch devices */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
   }
 }
 
@@ -115,6 +157,30 @@ html {
   }
 }
 
+@keyframes countUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .animate-float {
   animation: float 3s ease-in-out infinite;
 }
@@ -123,6 +189,14 @@ html {
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
   background-size: 200% 100%;
   animation: shimmer 2s ease-in-out infinite;
+}
+
+.animate-count-up {
+  animation: countUp 0.4s ease-out;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.3s ease-out;
 }
 
 /* ============================================
@@ -199,4 +273,32 @@ html {
 
 .animate-fade-in {
   animation: fadeIn 0.4s ease-out;
+}
+
+/* ============================================
+   Mobile-First Camera Overrides
+   ============================================ */
+@media (max-width: 640px) {
+  .camera-viewport {
+    aspect-ratio: 3 / 4;
+    border-radius: 1rem;
+  }
+}
+
+@media (min-width: 641px) {
+  .camera-viewport {
+    aspect-ratio: 4 / 3;
+  }
+}
+
+/* ============================================
+   Viewport Meta (ensure in layout.tsx)
+   ============================================ */
+@media (max-width: 640px) {
+
+  /* Larger touch targets on mobile */
+  .touch-target {
+    min-height: 48px;
+    min-width: 48px;
+  }
 }

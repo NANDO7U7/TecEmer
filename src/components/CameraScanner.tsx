@@ -312,8 +312,8 @@ export default function CameraScanner({ userId, onScanComplete }: CameraScannerP
             </div>
             {serialError && <p className="text-xs text-red-500 text-center">{serialError}</p>}
 
-            {/* Camera Viewfinder */}
-            <div className="relative rounded-3xl overflow-hidden bg-gray-900 aspect-[4/3] shadow-xl">
+            {/* Camera Viewfinder — Mobile-First: tall portrait on phone, landscape on desktop */}
+            <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-gray-900 camera-viewport shadow-xl">
                 {phase === 'idle' && !isStreaming && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-white/70 gap-4">
                         <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center text-4xl animate-pulse-soft">
