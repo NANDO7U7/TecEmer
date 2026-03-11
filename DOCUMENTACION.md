@@ -502,6 +502,7 @@ block-beta
     B3["📱 Convertir a PWA\ncon modo offline"]
     B4["📊 Panel de administración\npara gestores UGB"]
     B5["🧪 Tests unitarios y\nde integración"]
+    B6["🔐 Reconocimiento de\nusuarios por biometría"]
   end
 
   block:doing["🔄 EN PROCESO"]:1
@@ -509,6 +510,9 @@ block-beta
     D1["⚙️ Calibración de umbrales\nde confianza IA (≥75%)"]
     D2["🔌 Pruebas físicas con\nArduino y servomotores"]
     D4["🧪 Testing de flujo\ncompleto en producción"]
+    D5["🏆 Mapa de calor y\nranking por facultad"]
+    D6["🤖 Eco-Bot: chatbot\nambiental con FAQ"]
+    D7["🎖️ Insignias digitales\nde líder ambiental"]
   end
 
   block:done["✅ FINALIZADO"]:1
@@ -534,9 +538,13 @@ block-beta
   style B3 fill:#ffffff,stroke:#d1d5db,color:#374151
   style B4 fill:#ffffff,stroke:#d1d5db,color:#374151
   style B5 fill:#ffffff,stroke:#d1d5db,color:#374151
+  style B6 fill:#ffffff,stroke:#d1d5db,color:#374151
   style D1 fill:#fef9c3,stroke:#facc15,color:#713f12
   style D2 fill:#fef9c3,stroke:#facc15,color:#713f12
   style D4 fill:#fef9c3,stroke:#facc15,color:#713f12
+  style D5 fill:#fef9c3,stroke:#facc15,color:#713f12
+  style D6 fill:#fef9c3,stroke:#facc15,color:#713f12
+  style D7 fill:#fef9c3,stroke:#facc15,color:#713f12
   style F1 fill:#dcfce7,stroke:#4ade80,color:#14532d
   style F2 fill:#dcfce7,stroke:#4ade80,color:#14532d
   style F3 fill:#dcfce7,stroke:#4ade80,color:#14532d
@@ -554,9 +562,9 @@ block-beta
 
 | Columna | Tareas | Porcentaje |
 |---|---|---|
-| ✅ Finalizado | 11 tareas | **58%** |
-| 🔄 En Proceso | 3 tareas | **16%** |
-| 📋 Backlog | 5 tareas | **26%** |
+| ✅ Finalizado | 11 tareas | **48%** |
+| 🔄 En Proceso | 6 tareas | **26%** |
+| 📋 Backlog | 6 tareas | **26%** |
 
 ### Línea de Tiempo de Iteraciones
 
@@ -596,6 +604,7 @@ timeline
 | B3 | Convertir la app a PWA con capacidad offline | Media | Ninguna |
 | B4 | Panel de administración para gestores de la UGB Store | Media | Ninguna |
 | B5 | Escribir tests unitarios y de integración | Alta | Ninguna |
+| B6 | Reconocimiento de usuarios por biometría (facial/huella) | Alta | B1 |
 
 #### 🔄 En Proceso (Doing)
 
@@ -604,6 +613,9 @@ timeline
 | D1 | Calibración de umbrales de confianza de la IA (≥75%) | Equipo IA | Ajustando parámetros |
 | D2 | Pruebas físicas con Arduino UNO y 3 servomotores | Equipo Hardware | Ensamblaje de prototipo |
 | D4 | Testing del flujo completo escaneo → clasificación → Arduino → log | Equipo QA | En validación |
+| D5 | Mapa de calor y ranking de reciclaje por facultad (Leaderboard) | Equipo Backend | Componente creado, integrando datos |
+| D6 | Eco-Bot: chatbot ambiental con base de conocimiento | Equipo IA | FAQ implementado, expandiendo |
+| D7 | Insignias digitales de líder ambiental (4 niveles) | Equipo Frontend | Sistema creado con compartir |
 
 #### ✅ Finalizado (Done)
 

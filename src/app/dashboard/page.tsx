@@ -9,6 +9,8 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Accordion from '@/components/ui/Accordion';
 import NotificationSettings from '@/components/NotificationSettings';
+import Leaderboard from '@/components/Leaderboard';
+import BadgeDisplay from '@/components/BadgeDisplay';
 
 export default function DashboardPage() {
     const { user, profile, loading, refreshProfile } = useAuth();
@@ -309,6 +311,16 @@ export default function DashboardPage() {
                         {/* Notification Settings */}
                         <NotificationSettings />
                     </div>
+                </div>
+
+                {/* Row 3 — Leaderboard + Badges */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-5 sm:mt-8">
+                    <Leaderboard />
+                    <BadgeDisplay
+                        userId={user?.id}
+                        ecoPuntos={profile?.eco_puntos || 0}
+                        totalScans={profile?.total_scans || 0}
+                    />
                 </div>
             </div>
         </main>
