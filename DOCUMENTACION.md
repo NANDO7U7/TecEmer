@@ -502,7 +502,6 @@ block-beta
     B3["📱 Convertir a PWA\ncon modo offline"]
     B4["📊 Panel de administración\npara gestores UGB"]
     B5["🧪 Tests unitarios y\nde integración"]
-    B6["🔐 Reconocimiento de\nusuarios por biometría"]
   end
 
   block:doing["🔄 EN PROCESO"]:1
@@ -528,6 +527,7 @@ block-beta
     F9["✅ Documentación\ntécnica oficial"]
     F10["✅ Notificaciones push\nde eco-puntos"]
     F11["✅ Pulido visual y\nresponsive mobile-first"]
+    F12["✅ Identificación por\ncarnet OCR y biometría"]
   end
 
   style backlog fill:#f0fdf4,stroke:#86efac,color:#14532d
@@ -538,7 +538,6 @@ block-beta
   style B3 fill:#ffffff,stroke:#d1d5db,color:#374151
   style B4 fill:#ffffff,stroke:#d1d5db,color:#374151
   style B5 fill:#ffffff,stroke:#d1d5db,color:#374151
-  style B6 fill:#ffffff,stroke:#d1d5db,color:#374151
   style D1 fill:#fef9c3,stroke:#facc15,color:#713f12
   style D2 fill:#fef9c3,stroke:#facc15,color:#713f12
   style D4 fill:#fef9c3,stroke:#facc15,color:#713f12
@@ -556,15 +555,16 @@ block-beta
   style F9 fill:#dcfce7,stroke:#4ade80,color:#14532d
   style F10 fill:#dcfce7,stroke:#4ade80,color:#14532d
   style F11 fill:#dcfce7,stroke:#4ade80,color:#14532d
+  style F12 fill:#dcfce7,stroke:#4ade80,color:#14532d
 ```
 
 ### Resumen de Progreso
 
 | Columna | Tareas | Porcentaje |
 |---|---|---|
-| ✅ Finalizado | 11 tareas | **48%** |
+| ✅ Finalizado | 12 tareas | **52%** |
 | 🔄 En Proceso | 6 tareas | **26%** |
-| 📋 Backlog | 6 tareas | **26%** |
+| 📋 Backlog | 5 tareas | **22%** |
 
 ### Línea de Tiempo de Iteraciones
 
@@ -591,6 +591,12 @@ timeline
         : Web Serial API para Arduino
         : Navegación adaptativa por auth
         : Documentación técnica final
+    section V2.2 — Innovación y Biometría
+        Leaderboard por facultad : Ranking dinámico entre facultades UGB
+        : Eco-Bot chatbot ambiental
+        : Insignias digitales con compartir
+        : IdentityScanner con OCR de carnet UGB
+        : Fix crítico de hooks en scan page
 ```
 
 ### Detalle de Tarjetas por Columna
@@ -604,7 +610,6 @@ timeline
 | B3 | Convertir la app a PWA con capacidad offline | Media | Ninguna |
 | B4 | Panel de administración para gestores de la UGB Store | Media | Ninguna |
 | B5 | Escribir tests unitarios y de integración | Alta | Ninguna |
-| B6 | Reconocimiento de usuarios por biometría (facial/huella) | Alta | B1 |
 
 #### 🔄 En Proceso (Doing)
 
@@ -632,6 +637,7 @@ timeline
 | F9 | Documentación técnica oficial del proyecto | V2.0 | Feb 2026 |
 | F10 | Notificaciones push para eco-puntos (Service Worker + hook) | V2.1 | Mar 2026 |
 | F11 | Pulido visual mobile-first y responsive (Glassmorphism, touch targets) | V2.1 | Mar 2026 |
+| F12 | Identificación por carnet OCR y validación biométrica (IdentityScanner) | V2.2 | Mar 2026 |
 
 ---
 

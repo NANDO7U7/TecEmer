@@ -33,6 +33,8 @@ CREATE TABLE profiles (
   eco_puntos INTEGER DEFAULT 0,
   total_scans INTEGER DEFAULT 0,
   faculty_id UUID REFERENCES faculties(id),
+  carnet_code TEXT UNIQUE,
+  avatar_url TEXT,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
