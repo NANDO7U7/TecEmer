@@ -35,6 +35,7 @@ CREATE TABLE profiles (
   faculty_id UUID REFERENCES faculties(id),
   carnet_code TEXT UNIQUE,
   avatar_url TEXT,
+  total_co2_saved REAL DEFAULT 0,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 

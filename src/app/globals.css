@@ -3,22 +3,26 @@
 @tailwind utilities;
 
 /* ============================================
-   EcoScan AI — Global Design System
-   Mobile-First · Glassmorphism · Micro-Interactions
+   EcoScan AI V3.0 — Observatorio Verde UGB
+   Institutional Edition Theme
    ============================================ */
 
 :root {
-  --eco-green-dark: #2D4F1E;
-  --eco-green: #4A7C34;
-  --eco-green-light: #6B9B4E;
-  --eco-cream: #F5F1EB;
+  --eco-emerald: #00a859;
+  --eco-emerald-dark: #008c4a;
+  --eco-emerald-light: #00c965;
+  --eco-black: #000000;
+  --eco-dark: #1a1a1a;
   --eco-white: #FFFFFF;
+  --eco-cream: #f8f9fa;
   --eco-gray: #6B7280;
-  --eco-dark: #1A2E12;
+  --eco-green-dark: #1a1a1a;
+  --eco-green: #00a859;
+  --eco-green-light: #00c965;
 }
 
 /* ============================================
-   Base Styles (Mobile-First)
+   Base Styles
    ============================================ */
 body {
   font-family: 'Inter', system-ui, sans-serif;
@@ -26,11 +30,9 @@ body {
   color: #1f2937;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Prevent rubber-band scrolling on iOS */
   overscroll-behavior: none;
 }
 
-/* Touch optimization for mobile */
 button,
 a,
 [role="button"] {
@@ -38,18 +40,14 @@ a,
   touch-action: manipulation;
 }
 
-/* ============================================
-   Smooth Scrolling & Selection
-   ============================================ */
 html {
   scroll-behavior: smooth;
-  /* Prevent text resize on orientation change */
   -webkit-text-size-adjust: 100%;
 }
 
 ::selection {
-  background-color: rgba(74, 124, 52, 0.25);
-  color: var(--eco-green-dark);
+  background-color: rgba(0, 168, 89, 0.25);
+  color: var(--eco-emerald-dark);
 }
 
 /* ============================================
@@ -64,65 +62,67 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--eco-green);
+  background: var(--eco-emerald);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--eco-green-dark);
+  background: var(--eco-emerald-dark);
 }
 
 /* ============================================
-   Utility Classes
+   Utility Classes — Observatorio Verde
    ============================================ */
 @layer components {
+  /* V3 Institutional Gradient */
   .eco-gradient {
-    background: linear-gradient(135deg, var(--eco-green-dark) 0%, var(--eco-green) 50%, var(--eco-green-light) 100%);
+    background: linear-gradient(135deg, #000000 0%, var(--eco-emerald-dark) 50%, var(--eco-emerald) 100%);
   }
 
-  .eco-glass {
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-  }
-
-  /* Glassmorphism Cards */
-  .eco-glass-card {
-    background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.7);
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
-  }
-
+  /* Clean card — white, thin border, subtle shadow (NO glassmorphism) */
   .eco-card {
-    @apply bg-white rounded-2xl shadow-sm border border-gray-100 transition-all duration-300;
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 transition-all duration-300;
   }
 
   .eco-card:hover {
-    @apply shadow-md -translate-y-1;
+    @apply shadow-md;
+  }
+
+  /* Glass variant (kept for scan/dashboard but toned down) */
+  .eco-glass {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  .eco-glass-card {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   }
 
   .eco-text-gradient {
-    background: linear-gradient(135deg, var(--eco-green-dark) 0%, var(--eco-green-light) 100%);
+    background: linear-gradient(135deg, var(--eco-emerald) 0%, var(--eco-emerald-light) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
-  /* UGB Branded Skeleton Loader */
+  /* UGB Skeleton Loader */
   .eco-skeleton {
-    @apply rounded-xl animate-pulse;
+    @apply rounded-lg animate-pulse;
     background: linear-gradient(90deg,
-        rgba(74, 124, 52, 0.06) 0%,
-        rgba(74, 124, 52, 0.12) 50%,
-        rgba(74, 124, 52, 0.06) 100%);
+        rgba(0, 168, 89, 0.06) 0%,
+        rgba(0, 168, 89, 0.12) 50%,
+        rgba(0, 168, 89, 0.06) 100%);
     background-size: 200% 100%;
     animation: shimmer 1.8s ease-in-out infinite;
   }
 
-  /* Safe-area padding for notch devices */
+  /* Safe-area */
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 16px);
   }
@@ -136,84 +136,36 @@ html {
    Animations
    ============================================ */
 @keyframes float {
-
-  0%,
-  100% {
-    transform: translateY(0px);
-  }
-
-  50% {
-    transform: translateY(-10px);
-  }
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-
-  100% {
-    background-position: 200% 0;
-  }
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 @keyframes countUp {
-  from {
-    opacity: 0;
-    transform: translateY(8px) scale(0.95);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(8px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.animate-float {
-  animation: float 3s ease-in-out infinite;
-}
-
-.animate-shimmer {
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-  background-size: 200% 100%;
-  animation: shimmer 2s ease-in-out infinite;
-}
-
-.animate-count-up {
-  animation: countUp 0.4s ease-out;
-}
-
-.animate-slide-down {
-  animation: slideDown 0.3s ease-out;
-}
+.animate-float { animation: float 3s ease-in-out infinite; }
+.animate-count-up { animation: countUp 0.4s ease-out; }
+.animate-slide-down { animation: slideDown 0.3s ease-out; }
 
 /* ============================================
    Scan Animation
    ============================================ */
 @keyframes scan-line {
-  0% {
-    top: 0%;
-  }
-
-  50% {
-    top: 95%;
-  }
-
-  100% {
-    top: 0%;
-  }
+  0% { top: 0%; }
+  50% { top: 95%; }
+  100% { top: 0%; }
 }
 
 .scan-line {
@@ -221,8 +173,8 @@ html {
   left: 0;
   width: 100%;
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--eco-green), transparent);
-  box-shadow: 0 0 15px var(--eco-green), 0 0 30px var(--eco-green);
+  background: linear-gradient(90deg, transparent, var(--eco-emerald), transparent);
+  box-shadow: 0 0 15px var(--eco-emerald), 0 0 30px var(--eco-emerald);
   animation: scan-line 2.5s ease-in-out infinite;
 }
 
@@ -234,49 +186,25 @@ html {
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes slideUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 @keyframes scaleIn {
-  from {
-    transform: scale(0.8);
-    opacity: 0;
-  }
-
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 
-.animate-scale-in {
-  animation: scaleIn 0.4s ease-out;
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.4s ease-out;
-}
+.animate-scale-in { animation: scaleIn 0.4s ease-out; }
+.animate-fade-in { animation: fadeIn 0.4s ease-out; }
 
 /* ============================================
-   Mobile-First Camera Overrides
+   Mobile Camera
    ============================================ */
 @media (max-width: 640px) {
   .camera-viewport {
@@ -291,12 +219,7 @@ html {
   }
 }
 
-/* ============================================
-   Viewport Meta (ensure in layout.tsx)
-   ============================================ */
 @media (max-width: 640px) {
-
-  /* Larger touch targets on mobile */
   .touch-target {
     min-height: 48px;
     min-width: 48px;

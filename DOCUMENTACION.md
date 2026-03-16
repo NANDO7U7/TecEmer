@@ -512,6 +512,7 @@ block-beta
     D5["🏆 Mapa de calor y\nranking por facultad"]
     D6["🤖 Eco-Bot: chatbot\nambiental con FAQ"]
     D7["🎖️ Insignias digitales\nde líder ambiental"]
+    D8["🌍 Calculadora de impacto\nCO₂ y huella de carbono"]
   end
 
   block:done["✅ FINALIZADO"]:1
@@ -544,6 +545,7 @@ block-beta
   style D5 fill:#fef9c3,stroke:#facc15,color:#713f12
   style D6 fill:#fef9c3,stroke:#facc15,color:#713f12
   style D7 fill:#fef9c3,stroke:#facc15,color:#713f12
+  style D8 fill:#fef9c3,stroke:#facc15,color:#713f12
   style F1 fill:#dcfce7,stroke:#4ade80,color:#14532d
   style F2 fill:#dcfce7,stroke:#4ade80,color:#14532d
   style F3 fill:#dcfce7,stroke:#4ade80,color:#14532d
@@ -562,9 +564,9 @@ block-beta
 
 | Columna | Tareas | Porcentaje |
 |---|---|---|
-| ✅ Finalizado | 12 tareas | **52%** |
-| 🔄 En Proceso | 6 tareas | **26%** |
-| 📋 Backlog | 5 tareas | **22%** |
+| ✅ Finalizado | 12 tareas | **50%** |
+| 🔄 En Proceso | 7 tareas | **29%** |
+| 📋 Backlog | 5 tareas | **21%** |
 
 ### Línea de Tiempo de Iteraciones
 
@@ -597,6 +599,13 @@ timeline
         : Insignias digitales con compartir
         : IdentityScanner con OCR de carnet UGB
         : Fix crítico de hooks en scan page
+    section V3.0 — Institutional Edition
+        Rediseño Observatorio Verde : Paleta #00a859 esmeralda + negro
+        : Hero oscuro con collage de naturaleza
+        : Navbar institucional UGB con CTA verde
+        : Tarjetas limpias (sin glassmorphism pesado)
+        : Botones rounded-md minimalistas
+        : Blindaje de credenciales (.gitignore + .env.example)
 ```
 
 ### Detalle de Tarjetas por Columna
@@ -621,6 +630,7 @@ timeline
 | D5 | Mapa de calor y ranking de reciclaje por facultad (Leaderboard) | Equipo Backend | Componente creado, integrando datos |
 | D6 | Eco-Bot: chatbot ambiental con base de conocimiento | Equipo IA | FAQ implementado, expandiendo |
 | D7 | Insignias digitales de líder ambiental (4 niveles) | Equipo Frontend | Sistema creado con compartir |
+| D8 | Calculadora de impacto CO₂ y huella de carbono (ImpactStats) | Equipo Data | Componente creado, integrado en Dashboard |
 
 #### ✅ Finalizado (Done)
 
@@ -641,6 +651,70 @@ timeline
 
 ---
 
+## 12. Seguridad y Variables de Entorno
+
+### Principio Fundamental
+
+> ⚠️ **Ninguna credencial, API key o secreto debe existir en el código fuente.**
+
+EcoScan AI utiliza variables de entorno para aislar los datos sensibles de la UGB del repositorio público.
+
+### Configuración de Variables
+
+| Variable | Tipo | Descripción |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Obligatoria | URL del proyecto Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Obligatoria | Llave pública (anon) de Supabase |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Opcional | Llave VAPID para notificaciones push |
+| `NEXT_PUBLIC_SERIAL_BAUD_RATE` | Opcional | Velocidad de comunicación serial con Arduino |
+
+**Archivo de referencia:** `.env.example` contiene los nombres de todas las variables sin valores reales.
+
+### Protección en Git (`.gitignore`)
+
+El archivo `.gitignore` bloquea la subida accidental de:
+
+```
+.env / .env.local / .env.development / .env.production
+.env*.local          ← Todas las variantes
+node_modules/        ← Dependencias (>300 MB)
+.next/ / out/        ← Archivos de compilación
+*.pem / *.key        ← Certificados y llaves privadas
+```
+
+### Row Level Security (RLS) en Supabase
+
+Todas las tablas tienen políticas RLS activas:
+
+| Tabla | Política |
+|---|---|
+| `profiles` | Solo el usuario autenticado puede leer/escribir su propio perfil |
+| `recycling_logs` | Solo el usuario puede ver/insertar sus propios logs |
+| `eco_badges` | Solo el usuario puede ver/insertar/actualizar sus insignias |
+| `ugb_coupons` | Solo el usuario puede gestionar sus cupones |
+| `faculties` | Lectura pública, sin escritura |
+
+### Verificación de Seguridad en `supabase.ts`
+
+```typescript
+// ✅ CORRECTO — usa variables de entorno
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// ❌ INCORRECTO — NUNCA hacer esto
+// const supabase = createClient('https://xxx.supabase.co', 'eyJ...');
+```
+
+### Rotación de Llaves
+
+Si una llave es comprometida:
+1. Regenerar la llave en [Supabase Dashboard → Settings → API](https://supabase.com/dashboard)
+2. Actualizar `.env.local` localmente
+3. Actualizar la variable en el entorno de producción (Vercel, Netlify, etc.)
+4. **No es necesario hacer commit** — las llaves nunca están en el código
+
+---
+
 > **EcoScan AI** — *Tecnología al servicio del planeta, un escaneo a la vez.*
 > Universidad Gerardo Barrios © 2026
-

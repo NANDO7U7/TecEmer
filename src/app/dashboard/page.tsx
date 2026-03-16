@@ -11,6 +11,7 @@ import Accordion from '@/components/ui/Accordion';
 import NotificationSettings from '@/components/NotificationSettings';
 import Leaderboard from '@/components/Leaderboard';
 import BadgeDisplay from '@/components/BadgeDisplay';
+import ImpactStats from '@/components/ImpactStats';
 
 export default function DashboardPage() {
     const { user, profile, loading, refreshProfile } = useAuth();
@@ -321,6 +322,11 @@ export default function DashboardPage() {
                         ecoPuntos={profile?.eco_puntos || 0}
                         totalScans={profile?.total_scans || 0}
                     />
+                </div>
+
+                {/* Row 4 — Environmental Impact */}
+                <div className="mt-5 sm:mt-8">
+                    <ImpactStats userId={user?.id} />
                 </div>
             </div>
         </main>

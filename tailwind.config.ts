@@ -10,13 +10,16 @@ const config: Config = {
         extend: {
             colors: {
                 eco: {
-                    'green-dark': '#2D4F1E',
-                    'green': '#4A7C34',
-                    'green-light': '#6B9B4E',
-                    'cream': '#F5F1EB',
+                    'emerald': '#00a859',
+                    'emerald-dark': '#008c4a',
+                    'emerald-light': '#00c965',
+                    'green-dark': '#1a1a1a',
+                    'green': '#00a859',
+                    'green-light': '#00c965',
+                    'cream': '#f8f9fa',
                     'white': '#FFFFFF',
                     'gray': '#6B7280',
-                    'dark': '#1A2E12',
+                    'dark': '#000000',
                 },
                 bin: {
                     yellow: '#F59E0B',
