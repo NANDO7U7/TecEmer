@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -60,14 +60,7 @@ export default function BadgeDisplay({ userId, ecoPuntos, totalScans }: BadgeDis
     const [earnedBadges, setEarnedBadges] = useState<Badge[]>([]);
     const [showShareModal, setShowShareModal] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (userId) {
-            fetchBadges();
-            checkAndAwardBadges();
-        }
-    }, [userId, ecoPuntos, totalScans]);
-
-    const fetchBadges = async () => {
+    const fetchBadges = useCallback(async () => {
         if (!userId) return;
         const { data } = await supabase
             .from('eco_badges')
@@ -76,9 +69,9 @@ export default function BadgeDisplay({ userId, ecoPuntos, totalScans }: BadgeDis
             .order('threshold', { ascending: true });
 
         if (data) setEarnedBadges(data);
-    };
+    }, [userId]);
 
-    const checkAndAwardBadges = async () => {
+    const checkAndAwardBadges = useCallback(async () => {
         if (!userId) return;
 
         for (const badge of BADGE_CATALOG) {
@@ -109,7 +102,16 @@ export default function BadgeDisplay({ userId, ecoPuntos, totalScans }: BadgeDis
         }
 
         fetchBadges();
-    };
+    }, [userId, ecoPuntos, totalScans, fetchBadges]);
+
+    useEffect(() => {
+        if (userId) {
+            fetchBadges();
+            checkAndAwardBadges();
+        }
+    }, [userId, ecoPuntos, totalScans, fetchBadges, checkAndAwardBadges]);
+
+
 
     const shareBadge = async (badge: Badge) => {
         const text = `🎖️ ¡He obtenido la insignia "${badge.title}" en EcoScan AI de la UGB! 🌿♻️\n\n${badge.description}\n\n#EcoScanUGB #Sostenibilidad #UGB`;

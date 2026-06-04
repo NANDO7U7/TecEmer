@@ -1,720 +1,358 @@
-# 📄 EcoScan AI — Documentación Oficial del Proyecto
+# 📄 EcoScan AI — Documentación Técnica Oficial V2.2
 
-> **Universidad Gerardo Barrios (UGB)**
-> Asignatura: Tecnología Emergente
-> Versión: 2.0 — Sistema Inteligente de 3 Vías
-> Fecha: Febrero 2026
-
----
-
-## Tabla de Contenidos
-
-1. [Introducción y Propósito Social](#1-introducción-y-propósito-social)
-2. [Análisis del Problema y Justificación](#2-análisis-del-problema-y-justificación)
-3. [Evolución y Control de Cambios](#3-evolución-y-control-de-cambios)
-4. [Arquitectura Técnica y Hardware](#4-arquitectura-técnica-y-hardware)
-5. [Experiencia de Usuario (UX/UI)](#5-experiencia-de-usuario-uxui)
-6. [Sistema de Eco-Puntos y UGB Store](#6-sistema-de-eco-puntos-y-ugb-store)
-7. [Fases del Proyecto](#7-fases-del-proyecto)
-8. [Estructura de Archivos](#8-estructura-de-archivos)
-9. [Esquema de Base de Datos](#9-esquema-de-base-de-datos)
-10. [Guía de Despliegue](#10-guía-de-despliegue)
-11. [Tablero Kanban del Proyecto](#11-tablero-kanban-del-proyecto)
+## Universidad Gerardo Barrios (UGB)
+**Asignatura:** Tecnología Emergente  
+**Proyecto:** Sistema Inteligente de Reciclaje Automatizado con IA y Hardware  
+**Versión:** V2.2 — Institutional & Biometric Edition  
+**Autor:** Fernando José Cruz Chévez  
+**Institución:** Universidad Gerardo Barrios (UGB)  
+**Fecha:** Mayo 2026  
 
 ---
 
-## 1. Introducción y Propósito Social
-
-### ¿Qué es EcoScan AI?
-
-**EcoScan AI** no es únicamente una aplicación de software; es una **iniciativa de sostenibilidad ambiental** nacida dentro de la Universidad Gerardo Barrios con el objetivo de transformar la manera en que la comunidad estudiantil interactúa con el reciclaje.
-
-El proyecto integra **inteligencia artificial**, **hardware con Arduino** y **gamificación** para crear un ecosistema donde reciclar correctamente se convierte en una actividad gratificante y educativa.
-
-### Visión
-
-Construir una cultura de reciclaje inteligente en la UGB que pueda servir como **modelo de referencia interuniversitario**, demostrando que la tecnología puede ser un catalizador del cambio ambiental en instituciones educativas de El Salvador y Centroamérica.
-
-### Público Objetivo
-
-| Segmento | Rol en el Ecosistema |
-|---|---|
-| **Estudiantes UGB** | Usuarios principales — escanean, reciclan y ganan puntos |
-| **Administración UGB** | Gestionan la UGB Store y los incentivos |
-| **Personal de Limpieza** | Se benefician de la clasificación previa de residuos |
-| **Comunidad Académica** | Modelo replicable para otras universidades |
+## 📋 Tabla de Contenidos
+1. [Portada Institucional](#portada-institucional)
+2. [Resumen del Proyecto](#resumen-del-proyecto)
+3. [Historial de Versiones y Control de Cambios](#historial-de-versiones-y-control-de-cambios)
+4. [Arquitectura de Software y Hardware](#arquitectura-de-software-y-hardware)
+   - [4.1 Stack de Software](#41-stack-de-software)
+   - [4.2 Arquitectura y Componentes de Hardware (Skynet Robotics)](#42-arquitectura-y-componentes-de-hardware-skynet-robotics)
+   - [4.3 Integración Física (Web Serial API)](#43-integración-física-web-serial-api)
+5. [Esquema de Base de Datos y Seguridad (Supabase)](#esquema-de-base-de-datos-y-seguridad-supabase)
+6. [Sistema de Eco-Puntos y UGB Store](#sistema-de-eco-puntos-y-ugb-store)
+7. [Lógica de Clasificación e IdentityScanner OCR](#lógica-de-clasificación-e-identityscanner-ocr)
+8. [Estado Actual del Tablero Kanban (V2.2)](#estado-actual-del-tablero-kanban-v22)
+9. [Guía de Despliegue Local y Producción](#guía-de-despliegue-local-y-producción)
 
 ---
 
-## 2. Análisis del Problema y Justificación
+## 1. Portada Institucional
 
-### El Problema
-
-En el campus de la UGB, como en muchas instituciones educativas, se identificaron tres problemas críticos:
-
-1. **Confusión en la clasificación:** Los estudiantes no distinguen con seguridad qué tipo de residuo va en cada contenedor, lo que genera contaminación cruzada.
-2. **Falta de incentivos:** No existe una motivación tangible para que los estudiantes se esfuercen en reciclar correctamente. El reciclaje se percibe como una obligación, no como una oportunidad.
-3. **Ausencia de tecnología:** Los contenedores tradicionales no ofrecen retroalimentación ni guía al usuario, desperdiciando el potencial de la tecnología disponible.
-
-### La Solución: EcoScan AI
-
-EcoScan AI aborda estos tres problemas simultáneamente:
-
-| Problema | Solución EcoScan AI |
-|---|---|
-| Confusión en clasificación | **IA con visión artificial** que identifica el residuo y abre automáticamente la compuerta correcta |
-| Falta de incentivos | Sistema de **Eco-Puntos** canjeables por cupones de descuento en la **UGB Store** |
-| Ausencia de tecnología | Contenedores inteligentes con **Arduino**, servomotores y comunicación vía **Web Serial API** |
+* **Proyecto:** EcoScan AI
+* **Descripción:** Sistema de clasificación inteligente de residuos mediante Visión Artificial, IoT y Gamificación para la UGB
+* **Versión:** 2.2
+* **Autor:** Fernando José Cruz Chévez
+* **Docente/Cátedra:** Tecnología Emergente
+* **Institución:** Universidad Gerardo Barrios (UGB)
+* **Facultad:** Facultad de Ciencia y Tecnología
+* **Fecha:** Mayo 2026
 
 ---
 
-## 3. Evolución y Control de Cambios
+## 2. Resumen del Proyecto
 
-El proyecto sufrió transformaciones estratégicas significativas durante su desarrollo. Esta bitácora documenta cada decisión y su justificación.
+**EcoScan AI** es una solución integral y tecnológica diseñada para resolver el problema de la clasificación ineficiente de residuos sólidos dentro de los campus de la **Universidad Gerardo Barrios (UGB)**. Combinando **Inteligencia Artificial (Visión por Computadora)**, **Dispositivos de Hardware Libre (IoT)** y un **sistema de gamificación basado en Web3/Eco-Puntos**, el proyecto transforma el reciclaje tradicional en una experiencia interactiva, educativa y recompensada.
 
-### 3.1 Simplificación de Categorías: De 5 a 3 Contenedores
-
-#### Versión 1.0 (Inicial) — 5 Contenedores
-
-El diseño original contemplaba cinco categorías de clasificación basadas en sistemas de reciclaje europeos:
-
-| Color | Material | Complejidad |
-|---|---|---|
-| Amarillo | Plásticos y Envases | Media |
-| Verde | Vidrio | Alta |
-| Marrón | Orgánico | Media |
-| Gris/Blanco | Resto General | Baja |
-| Rojo | Peligrosos (pilas, aceite) | Muy Alta |
-
-#### Versión 2.0 (Final) — 3 Contenedores
-
-Se determinó que 5 categorías era excesivo para el contexto universitario y que un sistema más simple tendría mayor adopción y menor margen de error:
-
-| Color | Material | Señal Arduino | Eco-Puntos |
-|---|---|---|---|
-| 🟢 Verde | Botellas de Plástico | `P` | +15 ⭐ |
-| 🟡 Amarillo | Latas de Aluminio | `L` | +20 ⭐ |
-| ⚫ Negro | Basura Común (Descarte) | `C` | 0 |
-
-**Justificación:**
-- **Simplicidad de uso:** 3 opciones son cognitivamente más fáciles que 5.
-- **Viabilidad de hardware:** Menos servomotores, menos costo, más fiabilidad.
-- **Residuos más frecuentes en campus:** Botellas de plástico y latas representan la mayoría de residuos reciclables generados por estudiantes.
+El sistema funciona de la siguiente manera:
+1. **Identificación de Usuario:** El estudiante inicia sesión y valida su identidad escaneando su carnet UGB a través del módulo **IdentityScanner** (OCR de alta precisión).
+2. **Escaneo del Residuo:** Utilizando la cámara integrada en la aplicación web, una IA analiza el residuo en tiempo real.
+3. **Clasificación Automática:** Si el residuo es reciclable (botella plástica o lata de aluminio), el sistema envía una señal a través de la **Web Serial API** al contenedor inteligente de **Skynet Robotics** para abrir automáticamente la compuerta física correspondiente mediante servomotores.
+4. **Recompensa:** El estudiante recibe **Eco-Puntos** que puede acumular para canjear por cupones de descuento válidos en la **UGB Store** (cafetería, librería o tiendas del campus), mientras visualiza estadísticas de su huella de carbono y CO₂ evitado en su Dashboard.
 
 ---
 
-### 3.2 Cambio de Enfoque Funcional: Eliminación de Suscripciones
+## 3. Historial de Versiones y Control de Cambios
 
-#### Versión 1.0
+La evolución del sistema ha estado guiada por la optimización de hardware, la mejora en la experiencia del estudiante y la seguridad de la información:
 
-El diseño original incluía un módulo completo de **gestión de suscripciones y gastos** (tabla `tool_subscriptions`) con gráficas de desglose por categoría, ciclos de facturación, y gestión de renovaciones. Esto respondía a un planteamiento genérico de "aplicación de productividad".
-
-#### Versión 2.0
-
-Se eliminó completamente este módulo para centrar la aplicación en su verdadero propósito: **impacto ambiental y recompensas estudiantiles**.
-
-**Justificación:**
-- La gestión de suscripciones no tiene relación con el reciclaje ni con el público objetivo (estudiantes).
-- Añadía complejidad innecesaria a la base de datos y a la interfaz.
-- El espacio liberado se utilizó para el sistema de **UGB Store** (cupones canjeables por eco-puntos), que sí genera un incentivo directo para reciclar.
-
-**Elementos eliminados:**
-- Tabla `tool_subscriptions`
-- Componentes `SpendingChart.tsx` y `SubscriptionList.tsx`
-- Gráficas de gastos (`Recharts`)
-- Toda referencia a presupuestos o facturación
-
-**Elementos añadidos en su lugar:**
-- Tabla `ugb_coupons`
-- Catálogo de cupones UGB Store
-- Sección de canje en el Dashboard
-
----
-
-### 3.3 Lógica de Descarte Automático
-
-Esta fue la iteración más importante de la lógica de clasificación.
-
-#### Problema Detectado en V1.0
-
-En la versión original, la IA intentaba clasificar cada residuo en una de las 5 categorías. Si el objeto no era reconocido, el flujo se detenía y el usuario no sabía qué hacer.
-
-#### Solución Implementada en V2.0: Descarte Automático
-
-Se implementó un sistema de **3 vías con descarte inteligente**:
+### 📅 Bitácora de Versiones
 
 ```
-┌──────────────────────────────────────────┐
-│           OBJETO ESCANEADO               │
-└─────────────────┬────────────────────────┘
-                  │
-          ┌───────▼────────┐
-          │ ¿Es Plástico?  │
-          │ (confianza ≥75%)│
-          └───┬────────┬───┘
-            Sí │        │ No
-              │        │
-     ┌────────▼──┐  ┌──▼────────────┐
-     │  VERDE    │  │ ¿Es Lata?     │
-     │  +15 pts  │  │ (confianza    │
-     │  Serial:P │  │  ≥75%)        │
-     └───────────┘  └──┬────────┬───┘
-                     Sí │        │ No
-                       │        │
-              ┌────────▼──┐  ┌──▼───────────┐
-              │ AMARILLO  │  │    NEGRO     │
-              │  +20 pts  │  │ DESCARTE     │
-              │  Serial:L │  │ AUTOMÁTICO   │
-              └───────────┘  │    0 pts     │
-                             │  Serial:C    │
-                             └──────────────┘
+  V1.0 (Concepto Base)
+  ├── 5 Bins de reciclaje tradicionales
+  └── Módulo genérico de suscripciones y control de gastos personales
+         │
+         ▼
+  V1.5 (Simplificación y Gamificación)
+  ├── Reducción estratégica a 3 Bins (Verde, Amarillo, Negro)
+  ├── Eliminación total de control de suscripciones por irrelevancia
+  └── Creación de UGB Store y canje de cupones con Eco-Puntos
+         │
+         ▼
+  V2.0 (Sistema Autónomo e IoT)
+  ├── Lógica de descarte automático (Negro = 0 pts)
+  ├── Integración física con Arduino usando Web Serial API
+  └── RLS (Row Level Security) estricto en Supabase
+         │
+         ▼
+  V2.2 (Identidad & Innovación - ACTUAL)
+  ├── Módulo IdentityScanner con OCR para Carnet UGB
+  ├── Integración de Eco-Bot (Chatbot interactivo de FAQs)
+  ├── Leaderboard dinámico de reciclaje por Facultad
+  └── Calculadora de CO₂ y huella ecológica
 ```
 
-**Reglas de decisión:**
-1. Si la IA detecta **Botella de Plástico** con confianza ≥75% → Contenedor **Verde** → +15 puntos.
-2. Si la IA detecta **Lata de Aluminio** con confianza ≥75% → Contenedor **Amarillo** → +20 puntos.
-3. Si el objeto **no corresponde** a ninguna de las anteriores, o la confianza es baja → **Descarte automático** al contenedor **Negro** → 0 puntos.
+### 📋 Detalle de Cambios Críticos
 
-**Comportamiento de la interfaz en descarte:**
-- Se muestra: *"⚠️ Residuo no identificado como reciclable. Por favor, deposítelo en el contenedor de Basura Común."*
-- El contenedor Negro se abre automáticamente (señal `C` al Arduino).
-- No se otorgan eco-puntos, pero sí se registra el escaneo en el historial.
+* **Reducción de Bins (V1.5):** Se pasó de 5 contenedores europeos a **3 contenedores optimizados** (🟢 Verde para Botellas Plásticas, 🟡 Amarillo para Latas de Aluminio y ⚫ Negro para Basura Común). Esto redujo los costos de hardware de Skynet Robotics a la mitad, disminuyó los errores cognitivos en los estudiantes y se adaptó a los dos residuos más comunes en el campus.
+* **Eliminación del Módulo de Suscripciones (V1.5):** Originalmente, el proyecto heredaba una plantilla de control de suscripciones mensuales y gastos financieros (`tool_subscriptions`). Se descartó en su totalidad al no guardar relación con la ecología. El espacio liberado se aprovechó para construir la **UGB Store**, que incentiva directamente el reciclaje.
+* **Lógica de Descarte Automático (V2.0):** Implementación de una regla donde solo la separación exitosa de Plástico y Aluminio suma puntos. Si el residuo no es identificado con una confianza $\ge 75\%$, se cataloga como "Común" (Negro) y se abre la compuerta correspondiente sin asignar Eco-Puntos, evitando el fraude en el sistema.
+* **IdentityScanner con OCR (V2.2):** Se integró un escáner con visión artificial para digitalizar el carnet estudiantil de la UGB, extrayendo automáticamente el nombre y código del alumno para simplificar el flujo de registro.
 
 ---
 
-## 4. Arquitectura Técnica y Hardware
+## 4. Arquitectura de Software y Hardware
 
-### 4.1 Stack Tecnológico
-
-| Capa | Tecnología | Propósito |
-|---|---|---|
-| **Frontend** | Next.js 14 (App Router) | Framework React con SSR y rutas de archivo |
-| **Estilos** | Tailwind CSS | Diseño responsivo con utilidades |
-| **Backend/BaaS** | Supabase | PostgreSQL, Auth, Row Level Security |
-| **Hardware** | Arduino + Servomotores | Control de compuertas físicas |
-| **Comunicación** | Web Serial API | Puente navegador ↔ Arduino |
-| **Despliegue** | Docker + VPS | Contenedorización y hosting |
-
-### 4.2 Integración de Hardware (Web Serial API)
-
-La aplicación web se comunica directamente con un Arduino conectado por USB mediante la **Web Serial API**, disponible en Chrome y Edge.
-
-#### Flujo de Comunicación
+EcoScan AI une lo mejor del desarrollo web moderno con la robustez del hardware de control para crear un ecosistema interactivo e inmediato.
 
 ```
-┌─────────────┐      USB/Serial       ┌──────────────┐
-│  Navegador  │  ──── 9600 baud ────> │   Arduino    │
-│  (Chrome)   │      Caracteres:      │   (UNO/Nano) │
-│             │      'P', 'L', 'C'    │              │
-└─────────────┘                       └──────┬───────┘
-                                             │
-                                    ┌────────▼────────┐
-                                    │  Servomotores   │
-                                    │  (3 compuertas) │
-                                    └─────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                        ARQUITECTURA DE ECOSCAN AI                      │
+└────────────────────────────────────────────────────────────────────────┘
+                                     
+   [ Capa de Presentación / Lógica ]        [ Capa de Datos / Backend ]
+          Next.js 14 Web App                    Supabase PostgreSQL
+         (Tailwind CSS + React)                (Autenticación + RLS)
+                   │                                     │
+                   │ Web Serial API                      │ Supabase Client
+                   ▼                                     ▼
+        ┌─────────────────────┐               ┌─────────────────────┐
+        │ Arduino Uno (Micro) │               │   Tabla Profiles    │
+        └──────────┬──────────┘               │ Tabla RecyclingLogs │
+                   │                          │  Tabla UgbCoupons   │
+         Hardware  │ (Skynet Robotics Kit)    └─────────────────────┘
+         Control   ├──────────────────────────────┐
+                   ▼                              ▼
+            [ Servomotores ]             [ Sensores del Contenedor ]
+            3x SG90 Actuators             Sensor Ultrasónico + Humedad
 ```
 
-#### Señales de Control
+### 4.1 Stack de Software
 
-| Señal | Carácter | Acción del Arduino | Contenedor |
-|---|---|---|---|
-| Plástico | `P` | Gira servo 1 a 90° por 3 segundos | 🟢 Verde |
-| Lata | `L` | Gira servo 2 a 90° por 3 segundos | 🟡 Amarillo |
-| Común | `C` | Gira servo 3 a 90° por 3 segundos | ⚫ Negro |
+* **Next.js 14 (App Router):** Utilizado para estructurar la aplicación web de una sola página (SPA) con carga optimizada, renderizado híbrido y enrutamiento basado en archivos.
+* **Tailwind CSS:** Diseño responsivo con una estética limpia, micro-interacciones, animaciones sutiles y tarjetas minimalistas basadas en el branding institucional de **UGB Observatorio Verde**.
+* **Supabase (PostgreSQL + Auth):** BaaS para la gestión de usuarios, bases de datos relacionales en la nube, y políticas de seguridad avanzadas.
+* **Web Serial API:** Conector directo que permite al navegador web transmitir datos de control de bajo nivel al hardware conectado vía USB, sin requerir software intermedio.
 
-#### Implementación en el Código
+### 4.2 Arquitectura y Componentes de Hardware (Skynet Robotics)
 
-El hook `useSerial.ts` encapsula toda la lógica de conexión:
-1. El usuario presiona **"Conectar Arduino"** → se abre un diálogo del navegador para seleccionar el puerto COM.
-2. Se establece la conexión a **9600 baudios**.
-3. Tras cada escaneo, se envía automáticamente el carácter correspondiente (`P`, `L` o `C`).
-4. La interfaz muestra el estado de conexión en tiempo real.
+La estructura física del contenedor inteligente está equipada con el kit de componentes de **Skynet Robotics**, compuesto por:
 
-> **Nota:** Si el Arduino no está conectado, la clasificación funciona normalmente pero sin apertura física de compuertas. Esto permite usar la app en modo solo-software para fines de demostración.
+1. **Arduino Uno R3:** Microcontrolador principal encargado de leer los datos de los sensores, procesar las instrucciones seriales enviadas por la app web de EcoScan AI y accionar las compuertas de separación.
+2. **Servomotores TowerPro SG90 (x3):** Actuadores de alta precisión de $9g$ acoplados a las tapas basculantes de las compuertas (Contenedor Verde, Amarillo y Negro). Al recibir la instrucción del Arduino, giran $90^\circ$ para permitir la caída libre del residuo por gravedad y regresan a su estado cerrado tras 3 segundos.
+3. **Sensor Ultrasónico HC-SR04:** Ubicado en la parte superior interna de cada contenedor. Mide constantemente la distancia del fondo al sensor para calcular el porcentaje de llenado de cada compartimiento y alertar en la interfaz web cuando un contenedor está al $90\%$ de su capacidad.
+4. **Sensor de Humedad y Temperatura DHT11:** Monitorea la presencia de líquidos no deseados dentro de los contenedores de reciclaje seco (plásticos/aluminio) para prevenir daños mecánicos y reporta alertas ambientales críticas.
 
----
+### 4.3 Integración Física (Web Serial API)
 
-## 5. Experiencia de Usuario (UX/UI)
+Cuando la aplicación web confirma la clasificación de un residuo, el hook personalizado `useSerial.ts` transmite un único caracter ASCII al puerto serial conectado a **9600 baudios**:
 
-### 5.1 Navegación Adaptativa por Estado de Autenticación
-
-| Estado | Vista Principal | Navegación |
-|---|---|---|
-| **Invitado** (no autenticado) | Landing Page con información del proyecto | Links a Login / Registro |
-| **Estudiante** (autenticado) | Dashboard con eco-puntos y historial | Links a Dashboard / Escáner / Cerrar Sesión |
-
-### 5.2 Estética: "Naturaleza y Futuro"
-
-El diseño visual sigue una filosofía orgánica y moderna:
-
-- **Paleta de colores:** Verdes orgánicos (`#2D4F1E`, `#4A7C34`, `#6B9B4E`), crema (`#F5F1EB`), blancos puros.
-- **Tipografía:** Google Fonts **Inter** — limpia, moderna y altamente legible.
-- **Bordes:** `rounded-2xl` y `rounded-3xl` para un aspecto suave y amigable.
-- **Efectos:** Glassmorphism en la barra de navegación, micro-animaciones en hover, y transiciones suaves entre estados.
-- **Componentes tipo Card:** Sombras sutiles (`shadow-sm`, `shadow-lg`), fondos blancos con bordes delgados.
-
-### 5.3 Vistas Principales
-
-#### Landing Page (Invitado)
-- Hero con mensaje de impacto y botones de acción.
-- Sección de 3 contenedores con puntos y señales Arduino.
-- Flujo de "Cómo funciona" en 4 pasos.
-- Call-to-Action con gradiente verde.
-- Footer institucional UGB.
-
-#### Dashboard (Autenticado)
-- Tarjeta de saldo de Eco-Puntos con gradiente.
-- Botón de acceso directo al escáner.
-- Contadores por tipo de material (Plástico / Lata / Común).
-- Historial de reciclaje con fecha, material y puntos.
-- Sección UGB Store para canjear cupones.
-
-#### Escáner
-- Viewfinder de cámara con esquinas decorativas.
-- Botón de conexión Arduino.
-- Barra de escaneo animada durante el análisis.
-- Tarjeta de resultado con indicación clara del contenedor, confianza, puntos y señal enviada.
-- Mensaje de descarte para residuos no identificados.
+| Caracter Enviado | Contenedor Destino | Acción de Hardware (SG90) | Eco-Puntos |
+|:---:|---|---|:---:|
+| **`P`** | 🟢 Verde (Plásticos) | Apertura de Compuerta 1 ($90^\circ$ por 3s) | +15 ⭐ |
+| **`L`** | 🟡 Amarillo (Latas) | Apertura de Compuerta 2 ($90^\circ$ por 3s) | +20 ⭐ |
+| **`C`** | ⚫ Negro (Común) | Apertura de Compuerta 3 ($90^\circ$ por 3s) | 0 ⭐ |
 
 ---
 
-## 6. Sistema de Eco-Puntos y UGB Store
+## 5. Esquema de Base de Datos y Seguridad (Supabase)
 
-### 6.1 Tabla de Asignación de Puntos
-
-| Material | Contenedor | Eco-Puntos | Criterio |
-|---|---|---|---|
-| Botella de Plástico | 🟢 Verde | **+15 ⭐** | Reciclaje efectivo |
-| Lata de Aluminio | 🟡 Amarillo | **+20 ⭐** | Reciclaje efectivo |
-| Basura Común / No identificado | ⚫ Negro | **0** | Descarte automático |
-
-> **Regla fundamental:** Solo el reciclaje efectivo (plástico y latas) genera eco-puntos. La basura común se registra en el historial pero no otorga recompensa, incentivando a los estudiantes a separar correctamente.
-
-### 6.2 Catálogo de Cupones UGB Store
-
-| Cupón | Descuento | Costo en Eco-Puntos |
-|---|---|---|
-| Descuento en UGB Store | 10% | 100 ⭐ |
-| Descuento en Cafetería UGB | 15% | 150 ⭐ |
-| Descuento en Librería UGB | 20% | 250 ⭐ |
-| Descuento especial en UGB Store | 25% | 400 ⭐ |
-| Café gratis en Cafetería UGB | 100% | 500 ⭐ |
-
-### 6.3 Flujo de Canje
-
-1. El estudiante acumula eco-puntos escaneando residuos reciclables.
-2. En el Dashboard, sección "UGB Store", puede ver los cupones disponibles.
-3. Si tiene suficientes puntos, presiona "Canjear" y se genera un código único (ej: `UGB-K7F4-X2M9`).
-4. El cupón queda registrado en la sección "Mis Cupones" y puede mostrarlo en los establecimientos UGB.
-
----
-
-## 7. Fases del Proyecto
-
-### Fase 1: Investigación y Búsqueda de Información
-- Análisis de sistemas de reciclaje existentes en universidades.
-- Estudio de tecnologías de clasificación por visión artificial.
-- Evaluación de la Web Serial API para comunicación con hardware.
-- Definición del público objetivo y contexto de la UGB.
-
-### Fase 2: Diseño
-- Diseño de la paleta de colores y estética "Naturaleza y Futuro".
-- Creación de mockups para Landing Page, Dashboard y Escáner.
-- Definición de la experiencia de usuario adaptativa (Invitado vs. Autenticado).
-- Diseño del sistema de gamificación (Eco-Puntos y UGB Store).
-
-### Fase 3: Planificación Técnica
-- Selección del stack tecnológico (Next.js 14, Supabase, Tailwind CSS).
-- Diseño del esquema de base de datos con Row Level Security.
-- Planificación de la integración con Arduino mediante Web Serial API.
-- Definición del protocolo de señales (`P`, `L`, `C`).
-
-### Fase 4: Construcción e Iteración
-- **Iteración 1 (V1.0):** Implementación inicial con 5 contenedores y módulo de suscripciones.
-- **Iteración 2 (V1.5):** Simplificación a 3 contenedores, eliminación de suscripciones, adición de UGB Store.
-- **Iteración 3 (V2.0):** Implementación de la lógica de descarte automático. Negro = 0 puntos. Solo reciclaje efectivo genera recompensa.
-
----
-
-## 8. Estructura de Archivos
-
-```
-TecEmer/
-├── src/
-│   ├── app/
-│   │   ├── (auth)/
-│   │   │   ├── layout.tsx          # Layout centrado para autenticación
-│   │   │   ├── login/page.tsx      # Inicio de sesión con Supabase
-│   │   │   └── register/page.tsx   # Registro con nombre completo
-│   │   ├── dashboard/page.tsx      # Panel: puntos, historial, UGB Store
-│   │   ├── scan/page.tsx           # Escáner con guía de 3 contenedores
-│   │   ├── globals.css             # Estilos globales y animaciones
-│   │   ├── layout.tsx              # Layout raíz con Navbar
-│   │   └── page.tsx                # Landing Page (invitado) / Redirect (auth)
-│   ├── components/
-│   │   ├── ui/
-│   │   │   ├── Accordion.tsx       # Acordeón para cupones
-│   │   │   ├── Button.tsx          # Botón con variantes y estados
-│   │   │   ├── Card.tsx            # Tarjeta con sombras y hover
-│   │   │   └── Navbar.tsx          # Navegación adaptativa + Sign Out
-│   │   └── CameraScanner.tsx       # Escáner: cámara + IA + Arduino + log
-│   └── lib/
-│       ├── supabase.ts             # Cliente, tipos, BIN_INFO, catálogo
-│       ├── useAuth.ts              # Hook: sesión, perfil, signOut
-│       └── useSerial.ts            # Hook: Web Serial API para Arduino
-├── supabase/
-│   └── schema.sql                  # Esquema SQL: profiles, logs, coupons
-├── package.json
-├── tailwind.config.ts
-├── tsconfig.json
-├── next.config.mjs
-├── Dockerfile
-├── .env.local                      # Credenciales Supabase (no en repo)
-└── DOCUMENTACION.md                # Este documento
-```
-
----
-
-## 9. Esquema de Base de Datos
-
-### Tablas Activas (V2.0)
+La base de datos PostgreSQL de Supabase almacena perfiles, bitácoras de reciclaje y los cupones de la UGB Store. Está optimizada para garantizar la privacidad y robustez de los datos.
 
 ```sql
--- Perfiles de usuario con eco-puntos
-CREATE TABLE profiles (
-  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
-  full_name TEXT,
-  eco_puntos INTEGER DEFAULT 0,
-  total_scans INTEGER DEFAULT 0,
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+-- 1. EXTENSIONES
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- 2. TABLA DE PERFILES (Vinculada a auth.users de Supabase)
+CREATE TABLE IF NOT EXISTS profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  full_name TEXT NOT NULL DEFAULT '',
+  avatar_url TEXT,
+  total_scans INTEGER NOT NULL DEFAULT 0,
+  eco_points INTEGER NOT NULL DEFAULT 0,
+  facultad TEXT NOT NULL DEFAULT 'Ingeniería',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Historial de reciclaje (3 materiales)
-CREATE TABLE recycling_logs (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  material TEXT NOT NULL CHECK (material IN ('plastico', 'lata', 'comun')),
-  puntos_ganados INTEGER NOT NULL DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+-- Habilitar Row Level Security (RLS)
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- Políticas de Seguridad RLS
+CREATE POLICY "Permitir lectura de perfiles propios" ON profiles
+  FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Permitir actualizaciones de perfil propio" ON profiles
+  FOR UPDATE USING (auth.uid() = id);
+
+-- 3. TABLA DE HISTORIAL DE RECICLAJE
+CREATE TABLE IF NOT EXISTS recycling_logs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  material_name TEXT NOT NULL,
+  bin_color TEXT NOT NULL CHECK (bin_color IN ('green', 'yellow', 'black')),
+  confidence REAL NOT NULL DEFAULT 0.0,
+  points_earned INTEGER NOT NULL DEFAULT 0,
+  scanned_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Cupones canjeados en UGB Store
-CREATE TABLE ugb_coupons (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  code TEXT NOT NULL,
-  description TEXT NOT NULL,
-  discount_percent INTEGER NOT NULL DEFAULT 10,
-  puntos_cost INTEGER NOT NULL DEFAULT 100,
-  is_redeemed BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+ALTER TABLE recycling_logs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Permitir a estudiantes ver su historial" ON recycling_logs
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Permitir inserción de logs propios" ON recycling_logs
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- 4. TABLA DE CUPONES UGB STORE
+CREATE TABLE IF NOT EXISTS ugb_coupons (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  coupon_code TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  cost_points INTEGER NOT NULL DEFAULT 100,
+  is_redeemed BOOLEAN NOT NULL DEFAULT FALSE,
+  redeemed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE ugb_coupons ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Permitir a estudiantes ver sus cupones" ON ugb_coupons
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Permitir adquisición de cupones propios" ON ugb_coupons
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
 ```
 
-### Seguridad (RLS)
+### 🔒 Políticas de Seguridad (RLS) y Triggers
 
-Todas las tablas tienen **Row Level Security** habilitado. Cada usuario solo puede ver, insertar y actualizar sus propios registros usando `auth.uid() = id` o `auth.uid() = user_id`.
-
-### Trigger Automático
-
-Un trigger en la tabla `auth.users` de Supabase crea automáticamente un perfil en `profiles` cuando un nuevo usuario se registra:
+* **Privacidad del Estudiante:** Ningún estudiante puede leer el historial de reciclaje, el saldo de puntos ni los cupones de otro alumno. Supabase evalúa en el servidor que la directiva `auth.uid() = user_id` sea verdadera.
+* **Creación Automática de Perfil:** Un trigger intercepta el registro de la cuenta del estudiante y crea de forma atómica su fila en la tabla `profiles` con 0 puntos iniciales:
 
 ```sql
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, full_name)
-  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'full_name', ''));
+  INSERT INTO public.profiles (id, full_name, facultad)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', 'Estudiante UGB'),
+    COALESCE(NEW.raw_user_meta_data->>'facultad', 'Ingeniería y Arquitectura')
+  );
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 ```
 
 ---
 
-## 10. Guía de Despliegue
+## 6. Sistema de Eco-Puntos y UGB Store
 
-### Requisitos Previos
-- **Node.js** v18 o superior
-- Cuenta en **Supabase** con proyecto creado
-- **Arduino UNO/Nano** con 3 servomotores (para integración física)
-- Navegador **Chrome** o **Edge** (para Web Serial API)
+La gamificación es el motor de participación de EcoScan AI. Los estudiantes acumulan puntos por reciclar botellas y latas de manera eficiente:
 
-### Pasos
+### 🪙 Tabla de Recompensas por Residuo
+* **Botella de Plástico (Contenedor Verde):** **+15 Eco-Puntos** 🟢
+* **Lata de Aluminio (Contenedor Amarillo):** **+20 Eco-Puntos** 🟡
+* **Descarte / Basura Común (Contenedor Negro):** **0 Eco-Puntos** ⚫
 
-```bash
-# 1. Clonar o navegar al proyecto
-cd TecEmer
+### 🎟️ Catálogo Oficial de Canjes en la UGB Store
 
-# 2. Instalar dependencias
-npm install
+El saldo acumulado de Eco-Puntos puede ser redimido directamente desde la aplicación por cupones digitales con códigos únicos verificables:
 
-# 3. Configurar variables de entorno
-# Crear .env.local con:
-#   NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
-#   NEXT_PUBLIC_SUPABASE_ANON_KEY=tu-anon-key
+| Código de Cupón | Beneficio | Costo (Eco-Puntos) | Establecimiento UGB |
+|---|---|:---:|---|
+| **`UGB-COFFEE-15`** | Café gratis + 15% Desc. | **150 ⭐** | Cafetería del Campus |
+| **`UGB-LIBRERIA-20`** | 20% Descuento en útiles | **250 ⭐** | Librería Universitaria |
+| **`UGB-STORE-10`** | 10% Descuento en artículos promocionales | **100 ⭐** | UGB Store Oficial |
+| **`UGB-DESCUENTO-50`** | 50% en Aranceles especiales (Congresos) | **500 ⭐** | Administración UGB |
 
-# 4. Ejecutar el esquema SQL en Supabase SQL Editor
-# (Copiar contenido de supabase/schema.sql)
+---
 
-# 5. Iniciar servidor de desarrollo
-npm run dev
+## 7. Lógica de Clasificación e IdentityScanner OCR
 
-# 6. Abrir en navegador
-# http://localhost:3000
+### 🔄 Algoritmo de Flujo de Clasificación e IoT
+```
+       INICIO
+         │
+         ▼
+[ Escanear Objeto con Cámara ]
+         │
+         ▼
+¿Confianza del Modelo ≥ 75%? ───── No ────> [ Abrir Contenedor NEGRO ] ──> [ +0 Puntos ]
+         │                                   (Se envía serial: 'C')
+        Sí
+         │
+ ┌───────┴───────────────────────┐
+ ▼                               ▼
+¿Es Plástico?               ¿Es Aluminio?
+ │                               │
+ Sí                              Sí
+ ▼                               ▼
+[ Abrir Contenedor VERDE ]  [ Abrir Contenedor AMARILLO ]
+(Se envía serial: 'P')      (Se envía serial: 'L')
+ │                               │
+ ▼                               ▼
+[ +15 Eco-Puntos ]          [ +20 Eco-Puntos ]
+         │                       │
+         └───────────┬───────────┘
+                     ▼
+             [ Registrar en BD ]
+                     │
+                    FIN
 ```
 
-### Despliegue con Docker
-
-```bash
-docker build -t ecoscan-ai .
-docker run -p 3000:3000 \
-  -e NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co \
-  -e NEXT_PUBLIC_SUPABASE_ANON_KEY=tu-anon-key \
-  ecoscan-ai
-```
+### 💳 Módulo IdentityScanner (V2.2)
+El módulo `IdentityScanner` incorporado en la versión **V2.2** lee la información del carnet físico del estudiante de la UGB.
+* **Procesamiento OCR:** Al acercar el carnet a la cámara, el sistema captura un cuadro de video de alta resolución, aísla el área del código de barra o texto, y extrae mediante reconocimiento óptico de caracteres el **Código de Estudiante** (ej. `SMIS012321`) y el **Nombre**.
+* **Autenticación Rápida:** Si el estudiante ya está registrado, el sistema carga de forma segura sus datos biométricos y de perfil. Si es nuevo, el sistema pre-llena el formulario de registro para simplificar el proceso al mínimo clic.
 
 ---
 
-> **EcoScan AI** — *Tecnología al servicio del planeta, un escaneo a la vez.*
-> Universidad Gerardo Barrios © 2026
+## 8. Estado Actual del Tablero Kanban (V2.2)
+
+A continuación se detalla la distribución de tareas de la versión estable y limpia actual extraída de GitHub, estructurada en el plan de trabajo del proyecto:
+
+### 📋 BACKLOG (Por Hacer)
+- [ ] **B1 - Integración de TensorFlow.js Nativo:** Sustituir la simulación del clasificador por un modelo de red neuronal convolucional entrenado nativamente en el navegador.
+- [ ] **B2 - Expansión Interuniversitaria:** Modularizar la configuración para permitir múltiples sub-proyectos bajo distintas sedes de la UGB (San Miguel, Usulután).
+- [ ] **B3 - Aplicación Web Progresiva (PWA):** Instalar service workers adicionales para soportar instalación nativa en dispositivos móviles Android y iOS.
+- [ ] **B4 - Panel Administrativo UGB Store:** Interfaz para que los cajeros de la UGB validen y marquen los cupones como canjeados mediante lector de código QR.
+
+### 🔄 EN PROCESO (Doing)
+- [ ] **D1 - Calibración fina de sensores de Skynet Robotics:** Ajustar los retardos en el código de Arduino para la respuesta del servo SG90 y la lectura de humedad para evitar bloqueos por falsos positivos.
+- [ ] **D2 - Dashboard con Leaderboard por Facultades:** Gráfica interactiva de barras comparando la cantidad de kilogramos reciclados entre la Facultad de Ingeniería y la Facultad de Salud.
+- [ ] **D3 - Refactor de Notificaciones Web Push:** Pulir el Service Worker para despachar notificaciones con sonido cuando el estudiante logre una insignia de líder ambiental.
+
+### ✅ FINALIZADO (Done)
+- [x] **F1 - Definición del sistema de 3 vías (Verde / Amarillo / Negro):** Simplificación del hardware y reducción de costes del kit Skynet Robotics.
+- [x] **F2 - Creación de base de datos relacional:** Diseño de tablas de perfiles, logs e historial en Supabase con integridad referencial.
+- [x] **F3 - Políticas de Seguridad RLS:** Asegurar que los datos del estudiante estén blindados en la nube.
+- [x] **F4 - Automatización de compuertas mediante Web Serial API:** Puente bidireccional directo de control de hardware desde Next.js a Arduino.
+- [x] **F5 - Módulo IdentityScanner:** Extracción de datos del carnet de estudiante mediante visión por computadora OCR en la página de escaneo.
+- [x] **F6 - Rediseño bajo branding UGB Observatorio Verde:** Interfaz de usuario pulida con paleta de colores esmeralda institucional, tipografía moderna Inter y componentes de tarjeta impecables.
+- [x] **F7 - Eliminación de residuos de código:** Remoción de la tabla `tool_subscriptions` y del código de gastos financieros irrelevantes.
 
 ---
 
-## 11. Tablero Kanban del Proyecto
+## 9. Guía de Despliegue Local y Producción
 
-### Estado Actual del Desarrollo
+### 🚀 Arranque Rápido del Servidor de Desarrollo
 
-El siguiente tablero Kanban refleja el estado de todas las tareas del proyecto EcoScan AI UGB, basado en la evolución documentada en las secciones anteriores.
-
-```mermaid
----
-config:
-  theme: forest
----
-block-beta
-  columns 3
-
-  block:backlog["📋 BACKLOG / POR HACER"]:1
-    columns 1
-    B1["🔬 Integrar modelo TensorFlow.js\nreal para clasificación"]
-    B2["🏫 Expansión a otras\nuniversidades de El Salvador"]
-    B3["📱 Convertir a PWA\ncon modo offline"]
-    B4["📊 Panel de administración\npara gestores UGB"]
-    B5["🧪 Tests unitarios y\nde integración"]
-  end
-
-  block:doing["🔄 EN PROCESO"]:1
-    columns 1
-    D1["⚙️ Calibración de umbrales\nde confianza IA (≥75%)"]
-    D2["🔌 Pruebas físicas con\nArduino y servomotores"]
-    D4["🧪 Testing de flujo\ncompleto en producción"]
-    D5["🏆 Mapa de calor y\nranking por facultad"]
-    D6["🤖 Eco-Bot: chatbot\nambiental con FAQ"]
-    D7["🎖️ Insignias digitales\nde líder ambiental"]
-    D8["🌍 Calculadora de impacto\nCO₂ y huella de carbono"]
-  end
-
-  block:done["✅ FINALIZADO"]:1
-    columns 1
-    F1["✅ Definición sistema\nde 3 contenedores"]
-    F2["✅ Esquema de BD\nSupabase con RLS"]
-    F3["✅ Implementación\nEco-Puntos + UGB Store"]
-    F4["✅ Lógica de descarte\nautomático (Negro=0pts)"]
-    F5["✅ Web Serial API\nhook para Arduino"]
-    F6["✅ Navegación adaptativa\n(Invitado vs Auth)"]
-    F7["✅ Eliminación módulo\nde suscripciones"]
-    F8["✅ Auth: Login, Registro\ny Cerrar Sesión"]
-    F9["✅ Documentación\ntécnica oficial"]
-    F10["✅ Notificaciones push\nde eco-puntos"]
-    F11["✅ Pulido visual y\nresponsive mobile-first"]
-    F12["✅ Identificación por\ncarnet OCR y biometría"]
-  end
-
-  style backlog fill:#f0fdf4,stroke:#86efac,color:#14532d
-  style doing fill:#fefce8,stroke:#fde68a,color:#713f12
-  style done fill:#f0fdf4,stroke:#4ade80,color:#14532d
-  style B1 fill:#ffffff,stroke:#d1d5db,color:#374151
-  style B2 fill:#ffffff,stroke:#d1d5db,color:#374151
-  style B3 fill:#ffffff,stroke:#d1d5db,color:#374151
-  style B4 fill:#ffffff,stroke:#d1d5db,color:#374151
-  style B5 fill:#ffffff,stroke:#d1d5db,color:#374151
-  style D1 fill:#fef9c3,stroke:#facc15,color:#713f12
-  style D2 fill:#fef9c3,stroke:#facc15,color:#713f12
-  style D4 fill:#fef9c3,stroke:#facc15,color:#713f12
-  style D5 fill:#fef9c3,stroke:#facc15,color:#713f12
-  style D6 fill:#fef9c3,stroke:#facc15,color:#713f12
-  style D7 fill:#fef9c3,stroke:#facc15,color:#713f12
-  style D8 fill:#fef9c3,stroke:#facc15,color:#713f12
-  style F1 fill:#dcfce7,stroke:#4ade80,color:#14532d
-  style F2 fill:#dcfce7,stroke:#4ade80,color:#14532d
-  style F3 fill:#dcfce7,stroke:#4ade80,color:#14532d
-  style F4 fill:#dcfce7,stroke:#4ade80,color:#14532d
-  style F5 fill:#dcfce7,stroke:#4ade80,color:#14532d
-  style F6 fill:#dcfce7,stroke:#4ade80,color:#14532d
-  style F7 fill:#dcfce7,stroke:#4ade80,color:#14532d
-  style F8 fill:#dcfce7,stroke:#4ade80,color:#14532d
-  style F9 fill:#dcfce7,stroke:#4ade80,color:#14532d
-  style F10 fill:#dcfce7,stroke:#4ade80,color:#14532d
-  style F11 fill:#dcfce7,stroke:#4ade80,color:#14532d
-  style F12 fill:#dcfce7,stroke:#4ade80,color:#14532d
-```
-
-### Resumen de Progreso
-
-| Columna | Tareas | Porcentaje |
-|---|---|---|
-| ✅ Finalizado | 12 tareas | **50%** |
-| 🔄 En Proceso | 7 tareas | **29%** |
-| 📋 Backlog | 5 tareas | **21%** |
-
-### Línea de Tiempo de Iteraciones
-
-```mermaid
----
-config:
-  theme: forest
----
-timeline
-    title Evolución de EcoScan AI UGB
-    section V1.0 — Concepto Inicial
-        Arquitectura base : 5 contenedores europeos
-        : Módulo de suscripciones
-        : Esquema SQL con tool_subscriptions
-        : Dashboard con gráficas de gastos
-    section V1.5 — Simplificación
-        Reducción a 3 contenedores : Verde, Amarillo, Negro
-        : Eliminación total de suscripciones
-        : Adición de UGB Store con cupones
-        : Eco-Puntos como gamificación
-    section V2.0 — Sistema Inteligente
-        Lógica de descarte automático : Negro = 0 puntos
-        : Solo reciclaje efectivo suma puntos
-        : Web Serial API para Arduino
-        : Navegación adaptativa por auth
-        : Documentación técnica final
-    section V2.2 — Innovación y Biometría
-        Leaderboard por facultad : Ranking dinámico entre facultades UGB
-        : Eco-Bot chatbot ambiental
-        : Insignias digitales con compartir
-        : IdentityScanner con OCR de carnet UGB
-        : Fix crítico de hooks en scan page
-    section V3.0 — Institutional Edition
-        Rediseño Observatorio Verde : Paleta #00a859 esmeralda + negro
-        : Hero oscuro con collage de naturaleza
-        : Navbar institucional UGB con CTA verde
-        : Tarjetas limpias (sin glassmorphism pesado)
-        : Botones rounded-md minimalistas
-        : Blindaje de credenciales (.gitignore + .env.example)
-```
-
-### Detalle de Tarjetas por Columna
-
-#### 📋 Backlog (Por Hacer)
-
-| # | Tarea | Prioridad | Dependencia |
-|---|---|---|---|
-| B1 | Integrar modelo TensorFlow.js real para clasificación de imágenes | Alta | Ninguna |
-| B2 | Expansión del sistema a otras universidades de El Salvador | Baja | B1, B4 |
-| B3 | Convertir la app a PWA con capacidad offline | Media | Ninguna |
-| B4 | Panel de administración para gestores de la UGB Store | Media | Ninguna |
-| B5 | Escribir tests unitarios y de integración | Alta | Ninguna |
-
-#### 🔄 En Proceso (Doing)
-
-| # | Tarea | Responsable | Estado |
-|---|---|---|---|
-| D1 | Calibración de umbrales de confianza de la IA (≥75%) | Equipo IA | Ajustando parámetros |
-| D2 | Pruebas físicas con Arduino UNO y 3 servomotores | Equipo Hardware | Ensamblaje de prototipo |
-| D4 | Testing del flujo completo escaneo → clasificación → Arduino → log | Equipo QA | En validación |
-| D5 | Mapa de calor y ranking de reciclaje por facultad (Leaderboard) | Equipo Backend | Componente creado, integrando datos |
-| D6 | Eco-Bot: chatbot ambiental con base de conocimiento | Equipo IA | FAQ implementado, expandiendo |
-| D7 | Insignias digitales de líder ambiental (4 niveles) | Equipo Frontend | Sistema creado con compartir |
-| D8 | Calculadora de impacto CO₂ y huella de carbono (ImpactStats) | Equipo Data | Componente creado, integrado en Dashboard |
-
-#### ✅ Finalizado (Done)
-
-| # | Tarea | Versión | Fecha |
-|---|---|---|---|
-| F1 | Definición del sistema de 3 contenedores (Verde/Amarillo/Negro) | V1.5 | Feb 2026 |
-| F2 | Esquema de base de datos Supabase con RLS | V1.0 → V2.0 | Feb 2026 |
-| F3 | Implementación de Eco-Puntos y conexión con UGB Store | V1.5 | Feb 2026 |
-| F4 | Lógica de descarte automático (Negro = 0 puntos) | V2.0 | Feb 2026 |
-| F5 | Web Serial API hook para comunicación con Arduino | V2.0 | Feb 2026 |
-| F6 | Navegación adaptativa (Landing para invitados, Dashboard para auth) | V1.5 | Feb 2026 |
-| F7 | Eliminación completa del módulo de suscripciones y gastos | V1.5 | Feb 2026 |
-| F8 | Autenticación completa: Login, Registro y Cerrar Sesión | V1.0 → V2.0 | Feb 2026 |
-| F9 | Documentación técnica oficial del proyecto | V2.0 | Feb 2026 |
-| F10 | Notificaciones push para eco-puntos (Service Worker + hook) | V2.1 | Mar 2026 |
-| F11 | Pulido visual mobile-first y responsive (Glassmorphism, touch targets) | V2.1 | Mar 2026 |
-| F12 | Identificación por carnet OCR y validación biométrica (IdentityScanner) | V2.2 | Mar 2026 |
+1. **Prerrequisitos:** Asegúrate de tener instalado **Node.js (v18+)** y **npm**.
+2. **Descarga del Proyecto:**
+   ```bash
+   git clone https://github.com/NANDO7U7/TecEmer.git
+   cd TecEmer
+   ```
+3. **Instalación de Dependencias:** Instala las dependencias oficiales de forma limpia:
+   ```bash
+   npm install
+   ```
+4. **Variables de Entorno:** Crea un archivo `.env.local` en la raíz del proyecto basándote en `.env.example`:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=https://tlcohnafrectdnibdrcc.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=tu-anon-key-de-supabase-aqui
+   ```
+5. **Ejecución:**
+   ```bash
+   npm run dev
+   ```
+6. **Acceso:** Abre tu navegador Chrome o Edge e ingresa a [http://localhost:3000](http://localhost:3000).
 
 ---
-
-## 12. Seguridad y Variables de Entorno
-
-### Principio Fundamental
-
-> ⚠️ **Ninguna credencial, API key o secreto debe existir en el código fuente.**
-
-EcoScan AI utiliza variables de entorno para aislar los datos sensibles de la UGB del repositorio público.
-
-### Configuración de Variables
-
-| Variable | Tipo | Descripción |
-|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Obligatoria | URL del proyecto Supabase |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Obligatoria | Llave pública (anon) de Supabase |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Opcional | Llave VAPID para notificaciones push |
-| `NEXT_PUBLIC_SERIAL_BAUD_RATE` | Opcional | Velocidad de comunicación serial con Arduino |
-
-**Archivo de referencia:** `.env.example` contiene los nombres de todas las variables sin valores reales.
-
-### Protección en Git (`.gitignore`)
-
-El archivo `.gitignore` bloquea la subida accidental de:
-
-```
-.env / .env.local / .env.development / .env.production
-.env*.local          ← Todas las variantes
-node_modules/        ← Dependencias (>300 MB)
-.next/ / out/        ← Archivos de compilación
-*.pem / *.key        ← Certificados y llaves privadas
-```
-
-### Row Level Security (RLS) en Supabase
-
-Todas las tablas tienen políticas RLS activas:
-
-| Tabla | Política |
-|---|---|
-| `profiles` | Solo el usuario autenticado puede leer/escribir su propio perfil |
-| `recycling_logs` | Solo el usuario puede ver/insertar sus propios logs |
-| `eco_badges` | Solo el usuario puede ver/insertar/actualizar sus insignias |
-| `ugb_coupons` | Solo el usuario puede gestionar sus cupones |
-| `faculties` | Lectura pública, sin escritura |
-
-### Verificación de Seguridad en `supabase.ts`
-
-```typescript
-// ✅ CORRECTO — usa variables de entorno
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// ❌ INCORRECTO — NUNCA hacer esto
-// const supabase = createClient('https://xxx.supabase.co', 'eyJ...');
-```
-
-### Rotación de Llaves
-
-Si una llave es comprometida:
-1. Regenerar la llave en [Supabase Dashboard → Settings → API](https://supabase.com/dashboard)
-2. Actualizar `.env.local` localmente
-3. Actualizar la variable en el entorno de producción (Vercel, Netlify, etc.)
-4. **No es necesario hacer commit** — las llaves nunca están en el código
-
----
-
-> **EcoScan AI** — *Tecnología al servicio del planeta, un escaneo a la vez.*
-> Universidad Gerardo Barrios © 2026
+*EcoScan AI v2.2 — Cuidamos nuestro campus, conservamos nuestro futuro. Universidad Gerardo Barrios.*

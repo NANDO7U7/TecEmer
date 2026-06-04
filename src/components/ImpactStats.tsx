@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import Card from '@/components/ui/Card';
 import { calculateCarbonOffset, getImpactMessage, CO2_PER_TREE_YEAR } from '@/lib/carbonOffset';
@@ -14,11 +14,7 @@ export default function ImpactStats({ userId }: ImpactStatsProps) {
     const [canCount, setCanCount] = useState(0);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        if (userId) fetchCounts();
-    }, [userId]);
-
-    const fetchCounts = async () => {
+    const fetchCounts = useCallback(async () => {
         setLoading(true);
         const { data } = await supabase
             .from('recycling_logs')
@@ -30,7 +26,11 @@ export default function ImpactStats({ userId }: ImpactStatsProps) {
             setCanCount(data.filter((r) => r.material === 'lata').length);
         }
         setLoading(false);
-    };
+    }, [userId]);
+
+    useEffect(() => {
+        if (userId) fetchCounts();
+    }, [userId, fetchCounts]);
 
     const stats = calculateCarbonOffset(plasticCount, canCount);
     const impact = getImpactMessage(stats.totalCO2Kg);
