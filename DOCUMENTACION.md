@@ -303,9 +303,9 @@ El módulo `IdentityScanner` incorporado en la versión **V2.2** lee la informac
 
 ---
 
-## 8. Estado Actual del Tablero Kanban (V2.2)
+## 8. Estado Actual del Tablero Kanban (V2.2 → Post-Deploy)
 
-A continuación se detalla la distribución de tareas de la versión estable y limpia actual extraída de GitHub, estructurada en el plan de trabajo del proyecto:
+Última actualización: **4 de junio de 2026** — Tras el despliegue exitoso en Vercel.
 
 ### 📋 BACKLOG (Por Hacer)
 - [ ] **B1 - Integración de TensorFlow.js Nativo:** Sustituir la simulación del clasificador por un modelo de red neuronal convolucional entrenado nativamente en el navegador.
@@ -314,9 +314,10 @@ A continuación se detalla la distribución de tareas de la versión estable y l
 - [ ] **B4 - Panel Administrativo UGB Store:** Interfaz para que los cajeros de la UGB validen y marquen los cupones como canjeados mediante lector de código QR.
 
 ### 🔄 EN PROCESO (Doing)
-- [ ] **D1 - Calibración fina de sensores de Skynet Robotics:** Ajustar los retardos en el código de Arduino para la respuesta del servo SG90 y la lectura de humedad para evitar bloqueos por falsos positivos.
-- [ ] **D2 - Dashboard con Leaderboard por Facultades:** Gráfica interactiva de barras comparando la cantidad de kilogramos reciclados entre la Facultad de Ingeniería y la Facultad de Salud.
-- [ ] **D3 - Refactor de Notificaciones Web Push:** Pulir el Service Worker para despachar notificaciones con sonido cuando el estudiante logre una insignia de líder ambiental.
+- [/] **D1 - Calibración fina de sensores de Skynet Robotics:** Ajustar los retardos en el código de Arduino para la respuesta del servo SG90 y la lectura de humedad para evitar bloqueos por falsos positivos.
+- [/] **D2 - Integración física Arduino + Web Serial API:** Conectar el circuito del Arduino Uno con los 3 servomotores SG90 y validar la comunicación serial desde la app en producción. *(Ver sección 11: Plan de Integración Arduino)*
+- [ ] **D3 - Dashboard con Leaderboard por Facultades:** Gráfica interactiva de barras comparando la cantidad de kilogramos reciclados entre la Facultad de Ingeniería y la Facultad de Salud.
+- [ ] **D4 - Refactor de Notificaciones Web Push:** Pulir el Service Worker para despachar notificaciones con sonido cuando el estudiante logre una insignia de líder ambiental.
 
 ### ✅ FINALIZADO (Done)
 - [x] **F1 - Definición del sistema de 3 vías (Verde / Amarillo / Negro):** Simplificación del hardware y reducción de costes del kit Skynet Robotics.
@@ -326,6 +327,7 @@ A continuación se detalla la distribución de tareas de la versión estable y l
 - [x] **F5 - Módulo IdentityScanner:** Extracción de datos del carnet de estudiante mediante visión por computadora OCR en la página de escaneo.
 - [x] **F6 - Rediseño bajo branding UGB Observatorio Verde:** Interfaz de usuario pulida con paleta de colores esmeralda institucional, tipografía moderna Inter y componentes de tarjeta impecables.
 - [x] **F7 - Eliminación de residuos de código:** Remoción de la tabla `tool_subscriptions` y del código de gastos financieros irrelevantes.
+- [x] **F8 - Despliegue en Producción (Vercel):** Build limpio, variables de entorno configuradas, CI/CD operativo en `https://tecemer.vercel.app`. *(Junio 2026)*
 
 ---
 
@@ -336,8 +338,8 @@ A continuación se detalla la distribución de tareas de la versión estable y l
 1. **Prerrequisitos:** Asegúrate de tener instalado **Node.js (v18+)** y **npm**.
 2. **Descarga del Proyecto:**
    ```bash
-   git clone https://github.com/NANDO7U7/TecEmer.git
-   cd TecEmer
+   git clone https://github.com/NANDO7U7/ecoscan-ai-ugb.git
+   cd ecoscan-ai-ugb
    ```
 3. **Instalación de Dependencias:** Instala las dependencias oficiales de forma limpia:
    ```bash
@@ -362,7 +364,7 @@ A continuación se detalla la distribución de tareas de la versión estable y l
 
 | Campo | Valor |
 |-------|-------|
-| **URL de Producción** | **https://ecoscan-ai-ugb.vercel.app** |
+| **URL de Producción** | **https://tecemer.vercel.app** |
 | **Plataforma** | Vercel (Serverless Edge Network) |
 | **CDN** | Vercel Edge Network — distribución global automática |
 | **SSL/HTTPS** | ✅ Certificado Let's Encrypt automático |
@@ -434,6 +436,122 @@ El flujo de despliegue continuo funciona de la siguiente manera:
 ```
 
 Cada `git push` a la rama `main` activa automáticamente un nuevo despliegue en Vercel sin intervención manual.
+
+---
+
+## 11. Plan de Integración Arduino — Tarea D2 (Siguiente Prioridad)
+
+### 🎯 Objetivo
+
+Conectar el circuito físico del **Arduino Uno** con los **3 servomotores TowerPro SG90** y validar la comunicación bidireccional con la aplicación web de EcoScan AI que ya está en producción en Vercel.
+
+### 🔧 Lista de Materiales (Kit Skynet Robotics)
+
+| # | Componente | Cantidad | Propósito |
+|---|-----------|----------|----------|
+| 1 | Arduino Uno R3 | 1 | Microcontrolador central |
+| 2 | Servomotor TowerPro SG90 | 3 | Apertura de compuertas (Verde, Amarillo, Negro) |
+| 3 | Sensor Ultrasónico HC-SR04 | 1-3 | Detección de nivel de llenado del contenedor |
+| 4 | Sensor de Humedad DHT11 | 1 | Detección de líquidos en contenedor seco |
+| 5 | Cable USB-B a USB-A | 1 | Conexión Arduino ↔ PC (puerto serial) |
+| 6 | Protoboard | 1 | Prototipado del circuito |
+| 7 | Cables Dupont (M-M, M-F) | ~20 | Conexiones |
+| 8 | Fuente 5V externa (opcional) | 1 | Alimentación si los 3 servos exceden corriente USB |
+
+### 📐 Diagrama de Conexiones
+
+```
+  Arduino Uno R3
+  ┌──────────────────────┐
+  │                      │
+  │  Pin 9  ────────────►  Servo 1 (Verde / Plástico)    ← señal 'P'
+  │  Pin 10 ────────────►  Servo 2 (Amarillo / Latas)    ← señal 'L'
+  │  Pin 11 ────────────►  Servo 3 (Negro / Común)       ← señal 'C'
+  │                      │
+  │  Pin 7 (Trig) ──────►  HC-SR04 Ultrasónico
+  │  Pin 6 (Echo) ◄──────  HC-SR04 Ultrasónico
+  │                      │
+  │  Pin 4 (Data) ◄──────  DHT11 Sensor Humedad
+  │                      │
+  │  5V  ───────────────►  VCC (todos los sensores)
+  │  GND ───────────────►  GND (todos los sensores)
+  │                      │
+  │  USB-B ◄────────────►  PC (Chrome/Edge) @ 9600 baud
+  └──────────────────────┘
+```
+
+### 💻 Código Arduino Base (`ecoscan_controller.ino`)
+
+```cpp
+#include <Servo.h>
+
+Servo servoVerde;     // Pin 9  — Plásticos
+Servo servoAmarillo;  // Pin 10 — Latas
+Servo servoNegro;     // Pin 11 — Basura Común
+
+void setup() {
+    Serial.begin(9600);
+    servoVerde.attach(9);
+    servoAmarillo.attach(10);
+    servoNegro.attach(11);
+
+    // Posición cerrada inicial
+    servoVerde.write(0);
+    servoAmarillo.write(0);
+    servoNegro.write(0);
+
+    Serial.println("EcoScan AI Arduino Controller Ready");
+}
+
+void loop() {
+    if (Serial.available() > 0) {
+        char cmd = Serial.read();
+
+        switch (cmd) {
+            case 'P':  // Plástico → Verde
+                servoVerde.write(90);
+                delay(3000);
+                servoVerde.write(0);
+                Serial.println("OK:P");
+                break;
+
+            case 'L':  // Lata → Amarillo
+                servoAmarillo.write(90);
+                delay(3000);
+                servoAmarillo.write(0);
+                Serial.println("OK:L");
+                break;
+
+            case 'C':  // Común → Negro
+                servoNegro.write(90);
+                delay(3000);
+                servoNegro.write(0);
+                Serial.println("OK:C");
+                break;
+        }
+    }
+}
+```
+
+### 🧪 Protocolo de Pruebas
+
+| Paso | Acción | Resultado Esperado |
+|------|--------|--------------------|
+| 1 | Cargar `ecoscan_controller.ino` en Arduino IDE y subir al Arduino Uno | LED TX parpadea, consola serial imprime "Ready" |
+| 2 | Abrir `https://tecemer.vercel.app/scan` en **Chrome** | Página de escáner carga correctamente |
+| 3 | Clic en **"Conectar Arduino"** | Diálogo del navegador muestra el puerto COM del Arduino |
+| 4 | Seleccionar el puerto y confirmar | Indicador de conexión cambia a "Conectado" (verde) |
+| 5 | Escanear una botella de plástico | IA clasifica → envía `'P'` → Servo 1 gira 90° por 3s → vuelve a 0° |
+| 6 | Escanear una lata de aluminio | IA clasifica → envía `'L'` → Servo 2 gira 90° por 3s → vuelve a 0° |
+| 7 | Escanear un objeto no reciclable | IA descarta → envía `'C'` → Servo 3 gira 90° por 3s → vuelve a 0° |
+| 8 | Verificar Dashboard | Eco-Puntos incrementados (+15 o +20), historial actualizado |
+
+### ⚠️ Notas Importantes
+
+* **Navegador:** La Web Serial API **solo funciona en Chrome y Edge** (no Firefox ni Safari).
+* **HTTPS requerido:** La Web Serial API requiere un contexto seguro. Vercel proporciona HTTPS automáticamente.
+* **Corriente:** Si los 3 servos operan simultáneamente, la corriente USB (500mA) podría ser insuficiente. En ese caso, usar una fuente externa de 5V conectada al pin VIN del Arduino.
+* **Modo solo-software:** Si el Arduino no está conectado, la app funciona normalmente clasificando y sumando puntos — solo omite la apertura física de compuertas.
 
 ---
 *EcoScan AI v2.2 — Cuidamos nuestro campus, conservamos nuestro futuro. Universidad Gerardo Barrios © 2026.*
