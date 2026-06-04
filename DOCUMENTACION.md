@@ -355,4 +355,85 @@ A continuación se detalla la distribución de tareas de la versión estable y l
 6. **Acceso:** Abre tu navegador Chrome o Edge e ingresa a [http://localhost:3000](http://localhost:3000).
 
 ---
-*EcoScan AI v2.2 — Cuidamos nuestro campus, conservamos nuestro futuro. Universidad Gerardo Barrios.*
+
+## 10. Entorno Cloud de Producción (Vercel)
+
+### 🌐 Enlace de Producción
+
+| Campo | Valor |
+|-------|-------|
+| **URL de Producción** | **https://ecoscan-ai-ugb.vercel.app** |
+| **Plataforma** | Vercel (Serverless Edge Network) |
+| **CDN** | Vercel Edge Network — distribución global automática |
+| **SSL/HTTPS** | ✅ Certificado Let's Encrypt automático |
+| **CI/CD** | ✅ Despliegue automático en cada `git push` a `main` |
+| **Repositorio** | [github.com/NANDO7U7/ecoscan-ai-ugb](https://github.com/NANDO7U7/ecoscan-ai-ugb) |
+| **Versión Desplegada** | V2.2 — Institutional & Biometric Edition |
+| **Fecha de Despliegue** | Junio 2026 |
+| **Estado** | ✅ **Operativo** |
+
+### ⚙️ Variables de Entorno Configuradas en Vercel
+
+Las credenciales de Supabase están configuradas exclusivamente en el **Dashboard de Vercel** (Settings → Environment Variables) y **nunca** en el código fuente:
+
+| Variable | Scope | Estado |
+|----------|-------|--------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Production, Preview, Development | ✅ Configurada |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Production, Preview, Development | ✅ Configurada |
+
+### 🛡️ Protección contra Crash de Build
+
+El cliente de Supabase incluye un **guard defensivo** que evita que el proceso de prerendering estático falle si las variables de entorno no están disponibles durante la compilación:
+
+```typescript
+// src/lib/supabase.ts
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('⚠️ EcoScan AI: Variables de Supabase no configuradas.');
+}
+
+export const supabase = createClient(
+    supabaseUrl || 'https://placeholder.supabase.co',
+    supabaseAnonKey || 'placeholder-key'
+);
+```
+
+### 📊 Resultado del Build de Producción
+
+```
+ ✓ Compiled successfully
+ ✓ Linting and checking validity of types
+ ✓ Generating static pages (8/8)
+
+Route (app)                Size     First Load JS
+┌ ○ /                      4.01 kB     159 kB
+├ ○ /dashboard             8.76 kB     163 kB
+├ ○ /login                 1.67 kB     95.7 kB
+├ ○ /register              1.84 kB     95.9 kB
+└ ○ /scan                  15.9 kB     164 kB
+```
+
+### 🔄 Pipeline CI/CD
+
+El flujo de despliegue continuo funciona de la siguiente manera:
+
+```
+  Desarrollador          GitHub              Vercel
+      │                    │                   │
+      ├── git push ──────► │                   │
+      │                    ├── webhook ──────► │
+      │                    │                   ├── npm install
+      │                    │                   ├── npm run build
+      │                    │                   ├── Deploy a Edge Network
+      │                    │                   ├── SSL automático
+      │                    │  ◄── status ──────┤
+      │  ◄── notificación ─┤                   │
+      │                    │                   │
+```
+
+Cada `git push` a la rama `main` activa automáticamente un nuevo despliegue en Vercel sin intervención manual.
+
+---
+*EcoScan AI v2.2 — Cuidamos nuestro campus, conservamos nuestro futuro. Universidad Gerardo Barrios © 2026.*
