@@ -41,6 +41,16 @@ export interface DynamicCoupon {
     used_at?: string;
 }
 
+export interface P2PTransfer {
+    id: string;
+    sender_id: string;
+    receiver_id: string;
+    sender_carnet: string;
+    receiver_carnet: string;
+    amount: number;
+    created_at: string;
+}
+
 // ============================================
 // 3 Bins Configuration
 // ============================================

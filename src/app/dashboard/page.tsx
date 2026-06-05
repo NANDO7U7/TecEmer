@@ -13,6 +13,7 @@ import Leaderboard from '@/components/Leaderboard';
 import BadgeDisplay from '@/components/BadgeDisplay';
 import ImpactStats from '@/components/ImpactStats';
 import RewardQR from '@/components/RewardQR';
+import P2PTransferForm from '@/components/P2PTransferForm';
 
 export default function DashboardPage() {
     const { user, profile, loading, refreshProfile } = useAuth();
@@ -322,6 +323,16 @@ export default function DashboardPage() {
                                 <Accordion items={couponAccordionItems} />
                             </Card>
                         )}
+
+                        {/* P2P Transfer */}
+                        {user && (
+                            <P2PTransferForm
+                                userId={user.id}
+                                userBalance={profile?.eco_puntos || 0}
+                                onTransferComplete={refreshProfile}
+                            />
+                        )}
+
                         {/* Notification Settings */}
                         <NotificationSettings />
                     </div>
