@@ -327,7 +327,7 @@ El módulo `IdentityScanner` incorporado en la versión **V2.2** lee la informac
 - [x] **F5 - Módulo IdentityScanner:** Extracción de datos del carnet de estudiante mediante visión por computadora OCR en la página de escaneo.
 - [x] **F6 - Rediseño bajo branding UGB Observatorio Verde:** Interfaz de usuario pulida con paleta de colores esmeralda institucional, tipografía moderna Inter y componentes de tarjeta impecables.
 - [x] **F7 - Eliminación de residuos de código:** Remoción de la tabla `tool_subscriptions` y del código de gastos financieros irrelevantes.
-- [x] **F8 - Despliegue en Producción (Vercel):** Build limpio, variables de entorno configuradas, CI/CD operativo en `https://tecemer.vercel.app`. *(Junio 2026)*
+- [x] **F8 - Despliegue en Producción (Vercel):** Build limpio, variables de entorno configuradas, CI/CD operativo en `https://ecoscan-ai-ugb.vercel.app`. *(Junio 2026)*
 
 ---
 
@@ -364,7 +364,7 @@ El módulo `IdentityScanner` incorporado en la versión **V2.2** lee la informac
 
 | Campo | Valor |
 |-------|-------|
-| **URL de Producción** | **https://tecemer.vercel.app** |
+| **URL de Producción** | **https://ecoscan-ai-ugb.vercel.app** |
 | **Plataforma** | Vercel (Serverless Edge Network) |
 | **CDN** | Vercel Edge Network — distribución global automática |
 | **SSL/HTTPS** | ✅ Certificado Let's Encrypt automático |
@@ -538,7 +538,7 @@ void loop() {
 | Paso | Acción | Resultado Esperado |
 |------|--------|--------------------|
 | 1 | Cargar `ecoscan_controller.ino` en Arduino IDE y subir al Arduino Uno | LED TX parpadea, consola serial imprime "Ready" |
-| 2 | Abrir `https://tecemer.vercel.app/scan` en **Chrome** | Página de escáner carga correctamente |
+| 2 | Abrir `https://ecoscan-ai-ugb.vercel.app/scan` en **Chrome** | Página de escáner carga correctamente |
 | 3 | Clic en **"Conectar Arduino"** | Diálogo del navegador muestra el puerto COM del Arduino |
 | 4 | Seleccionar el puerto y confirmar | Indicador de conexión cambia a "Conectado" (verde) |
 | 5 | Escanear una botella de plástico | IA clasifica → envía `'P'` → Servo 1 gira 90° por 3s → vuelve a 0° |
