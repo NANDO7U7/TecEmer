@@ -30,6 +30,17 @@ export interface UGBCoupon {
     created_at: string;
 }
 
+export interface DynamicCoupon {
+    id: string;
+    user_id: string;
+    reward_id: string;
+    token_auth: string;
+    created_at: string;
+    expires_at: string;
+    is_used: boolean;
+    used_at?: string;
+}
+
 // ============================================
 // 3 Bins Configuration
 // ============================================
@@ -89,11 +100,11 @@ export const BIN_INFO: Record<BinType, {
 // UGB Store Coupons Catalog
 // ============================================
 export const COUPON_CATALOG = [
-    { description: '10% descuento en UGB Store', discount_percent: 10, puntos_cost: 100 },
-    { description: '15% descuento en cafetería UGB', discount_percent: 15, puntos_cost: 150 },
-    { description: '20% descuento en librería UGB', discount_percent: 20, puntos_cost: 250 },
-    { description: '25% descuento en UGB Store', discount_percent: 25, puntos_cost: 400 },
-    { description: 'Café gratis en cafetería UGB', discount_percent: 100, puntos_cost: 500 },
+    { id: 'ugb_store_10', description: '10% descuento en UGB Store', discount_percent: 10, puntos_cost: 100 },
+    { id: 'cafeteria_15', description: '15% descuento en cafetería UGB', discount_percent: 15, puntos_cost: 150 },
+    { id: 'libreria_20', description: '20% descuento en librería UGB', discount_percent: 20, puntos_cost: 250 },
+    { id: 'ugb_store_25', description: '25% descuento en UGB Store', discount_percent: 25, puntos_cost: 400 },
+    { id: 'cafe_gratis', description: 'Café gratis en cafetería UGB', discount_percent: 100, puntos_cost: 500 },
 ];
 
 // ============================================

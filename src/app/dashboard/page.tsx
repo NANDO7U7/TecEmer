@@ -12,6 +12,7 @@ import NotificationSettings from '@/components/NotificationSettings';
 import Leaderboard from '@/components/Leaderboard';
 import BadgeDisplay from '@/components/BadgeDisplay';
 import ImpactStats from '@/components/ImpactStats';
+import RewardQR from '@/components/RewardQR';
 
 export default function DashboardPage() {
     const { user, profile, loading, refreshProfile } = useAuth();
@@ -19,6 +20,11 @@ export default function DashboardPage() {
     const [coupons, setCoupons] = useState<UGBCoupon[]>([]);
     const [loadingData, setLoadingData] = useState(true);
     const [redeemingId, setRedeemingId] = useState<number | null>(null);
+    const [activeQR, setActiveQR] = useState<{
+        rewardId: string;
+        label: string;
+        discount: number;
+    } | null>(null);
 
     const fetchData = useCallback(async () => {
         if (!user) return;
@@ -103,6 +109,13 @@ export default function DashboardPage() {
         refreshProfile();
         fetchData();
         setRedeemingId(null);
+
+        // Open the QR modal with the dynamic coupon
+        setActiveQR({
+            rewardId: item.id,
+            label: item.description,
+            discount: item.discount_percent,
+        });
     };
 
     // Compute stats
@@ -328,6 +341,17 @@ export default function DashboardPage() {
                 <div className="mt-5 sm:mt-8">
                     <ImpactStats userId={user?.id} />
                 </div>
+
+                {/* QR Modal */}
+                {activeQR && user && (
+                    <RewardQR
+                        userId={user.id}
+                        rewardId={activeQR.rewardId}
+                        rewardLabel={activeQR.label}
+                        discountPercent={activeQR.discount}
+                        onClose={() => setActiveQR(null)}
+                    />
+                )}
             </div>
         </main>
     );
