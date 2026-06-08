@@ -57,7 +57,7 @@ export default function ScanPage() {
                         {phase === 'identify'
                             ? 'Escanea o ingresa tu código de carnet UGB para identificarte'
                             : identifiedStudent
-                                ? `Reciclando como ${identifiedStudent.full_name || identifiedStudent.carnet_code} — Saldo: ${identifiedStudent.eco_puntos} ⭐`
+                                ? `Reciclando como ${identifiedStudent.name || identifiedStudent.carnet} — Saldo: ${identifiedStudent.eco_puntos} ⭐`
                                 : 'Apunta la cámara al objeto y nuestra IA lo clasificará'
                         }
                     </p>
@@ -90,10 +90,10 @@ export default function ScanPage() {
                             <div className="mb-4 flex items-center justify-center gap-3 bg-eco-green-dark/5 rounded-full px-4 py-2 max-w-sm mx-auto animate-fade-in">
                                 <span className="text-lg">👤</span>
                                 <span className="text-sm font-medium text-eco-green-dark">
-                                    {identifiedStudent.full_name || 'Estudiante'}
+                                    {identifiedStudent.name || 'Estudiante'}
                                 </span>
                                 <span className="text-xs font-mono text-eco-gray bg-white px-2 py-0.5 rounded-full">
-                                    {identifiedStudent.carnet_code}
+                                    {identifiedStudent.carnet}
                                 </span>
                                 <button
                                     onClick={() => { setPhase('identify'); setIdentifiedStudent(null); }}
