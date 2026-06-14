@@ -5,9 +5,16 @@ import { createClient } from '@supabase/supabase-js';
 // ============================================
 export interface Profile {
     id: string;
-    full_name: string | null;
+    name: string | null;
+    full_name?: string | null; // Para compatibilidad
     eco_puntos: number;
     total_scans: number;
+    faculty_id?: string | null;
+    carnet?: string | null;
+    carnet_code?: string | null; // Para compatibilidad
+    avatar_url?: string | null;
+    total_co2_saved?: number;
+    is_admin?: boolean;
     updated_at: string;
 }
 
@@ -16,7 +23,13 @@ export interface RecyclingLog {
     user_id: string;
     material: 'plastico' | 'lata' | 'comun';
     puntos_ganados: number;
+    qr_token?: string | null;
+    qr_validated?: boolean;
+    qr_expires_at?: string | null;
+    location?: string | null;
     created_at: string;
+    cantidad?: number;
+    tipo_detalle?: string;
 }
 
 export interface UGBCoupon {

@@ -22,7 +22,7 @@ interface QRData {
     expiresAt: number; // timestamp
 }
 
-type ScanPhase = 'idle' | 'scanning' | 'waiting_deposit' | 'show_qr' | 'claimed' | 'expired' | 'discard';
+type ScanPhase = 'idle' | 'scanning' | 'review' | 'waiting_deposit' | 'show_qr' | 'claimed' | 'expired' | 'discard';
 
 interface CameraScannerProps {
     userId?: string;
@@ -45,6 +45,11 @@ export default function CameraScanner({ userId, onScanComplete }: CameraScannerP
     const [qrData, setQrData] = useState<QRData | null>(null);
     const [countdown, setCountdown] = useState(60);
     const [showConfetti, setShowConfetti] = useState(false);
+
+    // B9: Quantity and sub-types states
+    const [cantidad, setCantidad] = useState(1);
+    const [subtipo, setSubtipo] = useState('');
+    const [otroDetalle, setOtroDetalle] = useState('');
 
     const { isConnected, isSupported, error: serialError, connect, sendSignal, disconnect } = useSerial();
     const { notifyPointsClaimed } = useNotifications();
@@ -131,87 +136,110 @@ export default function CameraScanner({ userId, onScanComplete }: CameraScannerP
         setTimeout(() => {
             const result = classifyWaste();
             setScanResult(result);
+            setCantidad(1);
+            setOtroDetalle('');
 
-            // Send signal to Arduino
-            const binData = BIN_INFO[result.material];
-            if (isConnected) {
-                sendSignal(binData.serialChar);
+            // Set default sub-type based on classification
+            if (result.material === 'plastico') {
+                setSubtipo('Botella PET pequeña (< 600ml)');
+            } else if (result.material === 'lata') {
+                setSubtipo('Lata de Refresco/Bebida (Aluminio)');
+            } else {
+                setSubtipo('Envolturas/Empaques de Snacks');
             }
 
+            setPhase('review');
+        }, 1500 + Math.random() * 1000);
+    };
+
+    const handleConfirmDeposit = async () => {
+        if (!scanResult) return;
+
+        const result = scanResult;
+        const binData = BIN_INFO[result.material];
+        const finalDetail = subtipo === 'otro' ? (otroDetalle.trim() || 'Otro específico') : subtipo;
+        const finalPoints = binData.points * cantidad;
+
+        // Send signal to Arduino
+        if (isConnected) {
+            sendSignal(binData.serialChar);
+        }
+
+        setPhase('waiting_deposit');
+
+        // After 2s "deposit confirmation", show QR or discard
+        timerRef.current = setTimeout(async () => {
             if (result.isRecyclable) {
-                // Phase: waiting for deposit confirmation
-                setPhase('waiting_deposit');
+                const token = generateToken();
+                const expiresAt = Date.now() + 60000; // 60 seconds
 
-                // After 2s "deposit confirmation", show QR
-                timerRef.current = setTimeout(async () => {
-                    const token = generateToken();
-                    const expiresAt = Date.now() + 60000; // 60 seconds
-
-                    // Insert log with qr_token (unvalidated)
-                    if (userId) {
-                        const { data } = await supabase
-                            .from('recycling_logs')
-                            .insert({
-                                user_id: userId,
-                                material: result.material,
-                                puntos_ganados: binData.points,
-                                qr_token: token,
-                                qr_validated: false,
-                                qr_expires_at: new Date(expiresAt).toISOString(),
-                            })
-                            .select('id')
-                            .single();
-
-                        setQrData({
-                            token,
-                            logId: data?.id || '',
+                // Insert log with qr_token (unvalidated)
+                if (userId) {
+                    const { data } = await supabase
+                        .from('recycling_logs')
+                        .insert({
+                            user_id: userId,
                             material: result.material,
-                            points: binData.points,
-                            expiresAt,
-                        });
-                    } else {
-                        setQrData({
-                            token,
-                            logId: 'demo',
-                            material: result.material,
-                            points: binData.points,
-                            expiresAt,
-                        });
-                    }
+                            puntos_ganados: finalPoints,
+                            qr_token: token,
+                            qr_validated: false,
+                            qr_expires_at: new Date(expiresAt).toISOString(),
+                            cantidad: cantidad,
+                            tipo_detalle: finalDetail,
+                        })
+                        .select('id')
+                        .single();
 
-                    setCountdown(60);
-                    setPhase('show_qr');
-                }, 2000);
+                    setQrData({
+                        token,
+                        logId: data?.id || '',
+                        material: result.material,
+                        points: finalPoints,
+                        expiresAt,
+                    });
+                } else {
+                    setQrData({
+                        token,
+                        logId: 'demo',
+                        material: result.material,
+                        points: finalPoints,
+                        expiresAt,
+                    });
+                }
+
+                setCountdown(60);
+                setPhase('show_qr');
             } else {
                 // Basura Común — no QR, no points, just log
                 setPhase('discard');
                 if (userId) {
-                    supabase.from('recycling_logs').insert({
+                    await supabase.from('recycling_logs').insert({
                         user_id: userId,
                         material: 'comun',
                         puntos_ganados: 0,
                         qr_validated: true, // auto-validated (no points)
+                        cantidad: cantidad,
+                        tipo_detalle: finalDetail,
                     });
                     // Increment total_scans only
-                    supabase
+                    const { data: profile } = await supabase
                         .from('profiles')
                         .select('total_scans')
                         .eq('id', userId)
-                        .single()
-                        .then(({ data: profile }) => {
-                            if (profile) {
-                                supabase
-                                    .from('profiles')
-                                    .update({
-                                        total_scans: (profile.total_scans || 0) + 1,
-                                        updated_at: new Date().toISOString(),
-                                    })
-                                    .eq('id', userId);
-                            }
-                        });
+                        .single();
+
+                    if (profile) {
+                        await supabase
+                            .from('profiles')
+                            .update({
+                                total_scans: (profile.total_scans || 0) + 1,
+                                updated_at: new Date().toISOString(),
+                            })
+                            .eq('id', userId);
+                    }
                 }
             }
-        }, 1500 + Math.random() * 1000);
+        }, 2000);
     };
 
     // Claim points via QR
@@ -266,6 +294,9 @@ export default function CameraScanner({ userId, onScanComplete }: CameraScannerP
         setPhase('idle');
         setQrData(null);
         setShowConfetti(false);
+        setCantidad(1);
+        setSubtipo('');
+        setOtroDetalle('');
         if (timerRef.current) clearTimeout(timerRef.current);
     };
 
@@ -395,6 +426,136 @@ export default function CameraScanner({ userId, onScanComplete }: CameraScannerP
                     </Button>
                 ) : null}
             </div>
+
+            {/* ===== REVIEW PHASE CARD ===== */}
+            {phase === 'review' && scanResult && (
+                <div className="rounded-3xl overflow-hidden border-2 border-eco-green shadow-lg animate-fade-in bg-white">
+                    <div className={`bg-gradient-to-r ${BIN_INFO[scanResult.material].gradientClass} p-5 text-white`}>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium opacity-90">🔍 Clasificación de IA</p>
+                                <p className="text-xl font-bold mt-1">
+                                    {BIN_INFO[scanResult.material].label} ({(scanResult.confidence * 100).toFixed(0)}%)
+                                </p>
+                            </div>
+                            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl">
+                                {BIN_INFO[scanResult.material].emoji}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-6 space-y-6">
+                        {/* Cantidad Selector */}
+                        <div className="space-y-2">
+                            <label className="block text-xs font-semibold text-eco-gray uppercase tracking-wider">
+                                Cantidad a depositar (Unidades)
+                            </label>
+                            <div className="flex items-center justify-center gap-6 bg-eco-cream/40 rounded-2xl p-4 border border-gray-100">
+                                <button
+                                    type="button"
+                                    onClick={() => setCantidad(prev => Math.max(1, prev - 1))}
+                                    className="w-12 h-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-xl font-bold hover:bg-gray-50 active:scale-95 transition-all text-eco-green-dark"
+                                >
+                                    -
+                                </button>
+                                <span className="text-3xl font-bold text-eco-green-dark w-12 text-center select-none">
+                                    {cantidad}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setCantidad(prev => Math.min(20, prev + 1))}
+                                    className="w-12 h-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-xl font-bold hover:bg-gray-50 active:scale-95 transition-all text-eco-green-dark"
+                                >
+                                    +
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Subtipo Selector */}
+                        <div className="space-y-2">
+                            <label htmlFor="subtipo-select" className="block text-xs font-semibold text-eco-gray uppercase tracking-wider">
+                                Tipo específico de material
+                            </label>
+                            <select
+                                id="subtipo-select"
+                                value={subtipo}
+                                onChange={(e) => setSubtipo(e.target.value)}
+                                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-eco-green/30 focus:border-eco-green transition-all bg-white font-medium text-eco-green-dark"
+                            >
+                                {scanResult.material === 'plastico' && (
+                                    <>
+                                        <option value="Botella PET pequeña (< 600ml)">Botella PET pequeña (&lt; 600ml)</option>
+                                        <option value="Botella PET grande (>= 600ml)">Botella PET grande (&gt;= 600ml)</option>
+                                        <option value="Envase HDPE (Jugos/Lácteos)">Envase HDPE (Jugos/Lácteos)</option>
+                                        <option value="Vaso Desechable Plástico">Vaso Desechable Plástico</option>
+                                        <option value="otro">Otro plástico reciclable...</option>
+                                    </>
+                                )}
+                                {scanResult.material === 'lata' && (
+                                    <>
+                                        <option value="Lata de Refresco/Bebida (Aluminio)">Lata de Refresco/Bebida (Aluminio)</option>
+                                        <option value="Lata de Conservas (Hojalata)">Lata de Conservas (Hojalata)</option>
+                                        <option value="Lata de Aluminio (Otros)">Lata de Aluminio (Otros)</option>
+                                        <option value="otro">Otro metal/lata reciclable...</option>
+                                    </>
+                                )}
+                                {scanResult.material === 'comun' && (
+                                    <>
+                                        <option value="Envolturas/Empaques de Snacks">Envolturas/Empaques de Snacks</option>
+                                        <option value="Papel/Cartón Sucio">Papel/Cartón Sucio</option>
+                                        <option value="Servilletas/Pañuelos Usados">Servilletas/Pañuelos Usados</option>
+                                        <option value="otro">Otro residuo común...</option>
+                                    </>
+                                )}
+                            </select>
+                        </div>
+
+                        {/* Otro input (si se selecciona 'otro') */}
+                        {subtipo === 'otro' && (
+                            <div className="space-y-2 animate-fade-in">
+                                <label htmlFor="otro-detalle-input" className="block text-xs font-semibold text-eco-gray uppercase tracking-wider">
+                                    Especifique el material
+                                </label>
+                                <input
+                                    id="otro-detalle-input"
+                                    type="text"
+                                    placeholder="Ej. Envase de champú, Bandeja de aluminio, etc."
+                                    value={otroDetalle}
+                                    onChange={(e) => setOtroDetalle(e.target.value)}
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-eco-green/30 focus:border-eco-green transition-all"
+                                />
+                            </div>
+                        )}
+
+                        {/* Previsualización de puntos */}
+                        <div className="flex items-center justify-between p-4 bg-eco-cream/20 rounded-2xl border border-dashed border-eco-green/20">
+                            <span className="text-sm font-medium text-gray-600">Puntos estimados a obtener</span>
+                            <span className="text-xl font-bold text-eco-green-dark">
+                                +{BIN_INFO[scanResult.material].points * cantidad} ⭐
+                            </span>
+                        </div>
+
+                        {/* Confirm Button */}
+                        <div className="flex gap-3">
+                            <Button
+                                onClick={handleConfirmDeposit}
+                                variant="primary"
+                                size="lg"
+                                className="flex-1"
+                            >
+                                Confirmar y Depositar
+                            </Button>
+                            <Button
+                                onClick={resetScan}
+                                variant="ghost"
+                                size="lg"
+                            >
+                                Cancelar
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* ===== QR VALIDATION CARD ===== */}
             {phase === 'show_qr' && qrData && scanResult && (

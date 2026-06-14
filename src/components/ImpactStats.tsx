@@ -18,12 +18,12 @@ export default function ImpactStats({ userId }: ImpactStatsProps) {
         setLoading(true);
         const { data } = await supabase
             .from('recycling_logs')
-            .select('material')
+            .select('material, cantidad')
             .eq('user_id', userId!);
 
         if (data) {
-            setPlasticCount(data.filter((r) => r.material === 'plastico').length);
-            setCanCount(data.filter((r) => r.material === 'lata').length);
+            setPlasticCount(data.filter((r) => r.material === 'plastico').reduce((acc, r) => acc + (r.cantidad || 1), 0));
+            setCanCount(data.filter((r) => r.material === 'lata').reduce((acc, r) => acc + (r.cantidad || 1), 0));
         }
         setLoading(false);
     }, [userId]);

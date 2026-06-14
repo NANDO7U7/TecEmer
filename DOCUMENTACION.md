@@ -178,12 +178,16 @@ CREATE POLICY "Permitir actualizaciones de perfil propio" ON profiles
 -- 3. TABLA DE HISTORIAL DE RECICLAJE
 CREATE TABLE IF NOT EXISTS recycling_logs (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  material_name TEXT NOT NULL,
-  bin_color TEXT NOT NULL CHECK (bin_color IN ('green', 'yellow', 'black')),
-  confidence REAL NOT NULL DEFAULT 0.0,
-  points_earned INTEGER NOT NULL DEFAULT 0,
-  scanned_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  material TEXT NOT NULL CHECK (material IN ('plastico', 'lata', 'comun')),
+  puntos_ganados INTEGER NOT NULL DEFAULT 0,
+  qr_token TEXT,
+  qr_validated BOOLEAN DEFAULT FALSE,
+  qr_expires_at TIMESTAMPTZ,
+  location TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  cantidad INTEGER DEFAULT 1,
+  tipo_detalle TEXT DEFAULT ''
 );
 
 ALTER TABLE recycling_logs ENABLE ROW LEVEL SECURITY;
@@ -311,7 +315,6 @@ El módulo `IdentityScanner` incorporado en la versión **V2.2** lee la informac
 - [ ] **B1 - Integración de TensorFlow.js Nativo:** Sustituir la simulación del clasificador por un modelo de red neuronal convolucional entrenado nativamente en el navegador.
 - [ ] **B2 - Expansión Interuniversitaria:** Modularizar la configuración para permitir múltiples sub-proyectos bajo distintas sedes de la UGB (San Miguel, Usulután).
 - [ ] **B3 - Aplicación Web Progresiva (PWA):** Instalar service workers adicionales para soportar instalación nativa en dispositivos móviles Android y iOS.
-- [ ] **B4 - Panel Administrativo UGB Store:** Interfaz para que los cajeros de la UGB validen y marquen los cupones como canjeados mediante lector de código QR.
 
 ### 🔄 EN PROCESO (Doing)
 - [/] **D1 - Calibración fina de sensores de Skynet Robotics:** Ajustar los retardos en el código de Arduino para la respuesta del servo SG90 y la lectura de humedad para evitar bloqueos por falsos positivos.
@@ -328,6 +331,12 @@ El módulo `IdentityScanner` incorporado en la versión **V2.2** lee la informac
 - [x] **F6 - Rediseño bajo branding UGB Observatorio Verde:** Interfaz de usuario pulida con paleta de colores esmeralda institucional, tipografía moderna Inter y componentes de tarjeta impecables.
 - [x] **F7 - Eliminación de residuos de código:** Remoción de la tabla `tool_subscriptions` y del código de gastos financieros irrelevantes.
 - [x] **F8 - Despliegue en Producción (Vercel):** Build limpio, variables de entorno configuradas, CI/CD operativo en `https://ecoscan-ai-ugb.vercel.app`. *(Junio 2026)*
+- [x] **F9 - Panel Admin (Administración General):** Interfaz para administradores con estadísticas globales del sistema, visualización y gestión de perfiles de usuario, e historial completo de reciclaje.
+- [x] **F10 - Registro Manual de Usuario:** Formulario alternativo de registro de usuario que permita ingresar carnet, nombre y facultad manualmente sin depender del OCR.
+- [x] **F11 - Obtención de Puntos a Canjear:** Flujo detallado para la conversión y obtención de puntos en la UGB Store, incluyendo la redención asistida por administrador.
+- [x] **F12 - Selección de Facultad:** Implementar un selector oficial de facultades de la UGB en el registro y en el perfil para alimentar de forma precisa el Leaderboard.
+- [x] **F13 - Cantidad y Tipo de Reciclaje:** Registrar la cantidad exacta (número de unidades) y el tipo específico de material reciclado en cada transacción.
+- [x] **F14 - Panel UGB Store (Canjes):** Interfaz para que los cajeros de la UGB validen y marquen los cupones como canjeados mediante lector de código QR en `/store-admin`.
 
 ---
 

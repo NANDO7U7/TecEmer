@@ -36,6 +36,7 @@ CREATE TABLE profiles (
   carnet_code TEXT UNIQUE,
   avatar_url TEXT,
   total_co2_saved REAL DEFAULT 0,
+  is_admin BOOLEAN DEFAULT FALSE,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -43,6 +44,12 @@ ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
 CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+
+-- Admin policies for profiles
+CREATE POLICY "Admins can view all profiles" ON profiles
+  FOR SELECT USING (is_admin(auth.uid()));
+CREATE POLICY "Admins can update all profiles" ON profiles
+  FOR UPDATE USING (is_admin(auth.uid()));
 
 -- 3. RECYCLING_LOGS (3 materials + QR + location)
 CREATE TABLE recycling_logs (
@@ -54,13 +61,19 @@ CREATE TABLE recycling_logs (
   qr_validated BOOLEAN DEFAULT FALSE,
   qr_expires_at TIMESTAMPTZ,
   location TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  cantidad INTEGER DEFAULT 1,
+  tipo_detalle TEXT DEFAULT ''
 );
 
 ALTER TABLE recycling_logs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view own logs" ON recycling_logs FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert own logs" ON recycling_logs FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own logs" ON recycling_logs FOR UPDATE USING (auth.uid() = user_id);
+
+-- Admin policies for recycling_logs
+CREATE POLICY "Admins can view all logs" ON recycling_logs
+  FOR SELECT USING (is_admin(auth.uid()));
 
 -- 4. UGB_COUPONS (store rewards)
 CREATE TABLE ugb_coupons (
@@ -78,6 +91,12 @@ ALTER TABLE ugb_coupons ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view own coupons" ON ugb_coupons FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert own coupons" ON ugb_coupons FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own coupons" ON ugb_coupons FOR UPDATE USING (auth.uid() = user_id);
+
+-- Admin policies for ugb_coupons
+CREATE POLICY "Admins can view all coupons" ON ugb_coupons
+  FOR SELECT USING (is_admin(auth.uid()));
+CREATE POLICY "Admins can update all coupons" ON ugb_coupons
+  FOR UPDATE USING (is_admin(auth.uid()));
 
 -- 5. ECO_BADGES (digital certificates)
 CREATE TABLE eco_badges (

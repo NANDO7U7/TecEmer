@@ -5,7 +5,9 @@ import { supabase } from '@/lib/supabase';
 
 export interface IdentifiedUser {
     id: string;
+    name: string;
     full_name: string;
+    carnet: string;
     carnet_code: string;
     eco_puntos: number;
     total_scans: number;
@@ -38,12 +40,23 @@ export function useIdentity() {
     const lookupByCarnet = useCallback(async (carnetCode: string): Promise<IdentifiedUser | null> => {
         const { data, error: dbError } = await supabase
             .from('profiles')
-            .select('id, full_name, carnet_code, eco_puntos, total_scans, avatar_url, faculty_id')
-            .eq('carnet_code', carnetCode)
+            .select('id, name, carnet, eco_puntos, total_scans, avatar_url, faculty_id')
+            .eq('carnet', carnetCode)
             .single();
 
         if (dbError || !data) return null;
-        return data as IdentifiedUser;
+        
+        return {
+            id: data.id,
+            name: data.name || '',
+            full_name: data.name || '',
+            carnet: data.carnet || '',
+            carnet_code: data.carnet || '',
+            eco_puntos: data.eco_puntos || 0,
+            total_scans: data.total_scans || 0,
+            avatar_url: data.avatar_url,
+            faculty_id: data.faculty_id
+        };
     }, []);
 
     /**
