@@ -26,6 +26,7 @@ type ScanPhase = 'idle' | 'scanning' | 'review' | 'waiting_deposit' | 'show_qr' 
 
 interface CameraScannerProps {
     userId?: string;
+    isAdmin?: boolean;
     onScanComplete?: (material: BinType, points: number) => void;
 }
 
@@ -33,7 +34,7 @@ function generateToken(): string {
     return `ECO-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
 
-export default function CameraScanner({ userId, onScanComplete }: CameraScannerProps) {
+export default function CameraScanner({ userId, isAdmin = false, onScanComplete }: CameraScannerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -47,7 +48,7 @@ export default function CameraScanner({ userId, onScanComplete }: CameraScannerP
     const [showConfetti, setShowConfetti] = useState(false);
 
     // B9: Quantity and sub-types states
-    const [cantidad, setCantidad] = useState(1);
+    const [cantidad, setCantidad] = useState<number | ''>(1);
     const [subtipo, setSubtipo] = useState('');
     const [otroDetalle, setOtroDetalle] = useState('');
 
@@ -158,7 +159,7 @@ export default function CameraScanner({ userId, onScanComplete }: CameraScannerP
         const result = scanResult;
         const binData = BIN_INFO[result.material];
         const finalDetail = subtipo === 'otro' ? (otroDetalle.trim() || 'Otro específico') : subtipo;
-        const finalPoints = binData.points * cantidad;
+        const finalPoints = binData.points * (Number(cantidad) || 1);
 
         // Send signal to Arduino
         if (isConnected) {
@@ -184,7 +185,7 @@ export default function CameraScanner({ userId, onScanComplete }: CameraScannerP
                             qr_token: token,
                             qr_validated: false,
                             qr_expires_at: new Date(expiresAt).toISOString(),
-                            cantidad: cantidad,
+                            cantidad: Number(cantidad) || 1,
                             tipo_detalle: finalDetail,
                         })
                         .select('id')
@@ -218,7 +219,7 @@ export default function CameraScanner({ userId, onScanComplete }: CameraScannerP
                         material: 'comun',
                         puntos_ganados: 0,
                         qr_validated: true, // auto-validated (no points)
-                        cantidad: cantidad,
+                        cantidad: Number(cantidad) || 1,
                         tipo_detalle: finalDetail,
                     });
                     // Increment total_scans only
@@ -446,30 +447,50 @@ export default function CameraScanner({ userId, onScanComplete }: CameraScannerP
 
                     <div className="p-6 space-y-6">
                         {/* Cantidad Selector */}
-                        <div className="space-y-2">
-                            <label className="block text-xs font-semibold text-eco-gray uppercase tracking-wider">
-                                Cantidad a depositar (Unidades)
-                            </label>
-                            <div className="flex items-center justify-center gap-6 bg-eco-cream/40 rounded-2xl p-4 border border-gray-100">
-                                <button
-                                    type="button"
-                                    onClick={() => setCantidad(prev => Math.max(1, prev - 1))}
-                                    className="w-12 h-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-xl font-bold hover:bg-gray-50 active:scale-95 transition-all text-eco-green-dark"
-                                >
-                                    -
-                                </button>
-                                <span className="text-3xl font-bold text-eco-green-dark w-12 text-center select-none">
-                                    {cantidad}
-                                </span>
-                                <button
-                                    type="button"
-                                    onClick={() => setCantidad(prev => Math.min(20, prev + 1))}
-                                    className="w-12 h-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-xl font-bold hover:bg-gray-50 active:scale-95 transition-all text-eco-green-dark"
-                                >
-                                    +
-                                </button>
+                        {isAdmin && (
+                            <div className="space-y-2">
+                                <label className="block text-xs font-semibold text-eco-gray uppercase tracking-wider">
+                                    Cantidad a depositar (Unidades)
+                                </label>
+                                <div className="flex items-center justify-center gap-6 bg-eco-cream/40 rounded-2xl p-4 border border-gray-100">
+                                    <button
+                                        type="button"
+                                        onClick={() => setCantidad(prev => Math.max(1, (typeof prev === 'number' ? prev : 1) - 1))}
+                                        className="w-12 h-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-xl font-bold hover:bg-gray-50 active:scale-95 transition-all text-eco-green-dark"
+                                    >
+                                        -
+                                    </button>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="999"
+                                        value={cantidad}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val === '') {
+                                                setCantidad('');
+                                            } else {
+                                                const parsed = parseInt(val, 10);
+                                                setCantidad(isNaN(parsed) ? 1 : Math.max(1, Math.min(999, parsed)));
+                                            }
+                                        }}
+                                        onBlur={() => {
+                                            if (cantidad === '') {
+                                                setCantidad(1);
+                                            }
+                                        }}
+                                        className="w-24 h-12 rounded-xl border border-gray-200 text-center text-2xl font-bold text-eco-green-dark focus:outline-none focus:ring-2 focus:ring-eco-green/30 bg-white"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setCantidad(prev => Math.min(999, (typeof prev === 'number' ? prev : 1) + 1))}
+                                        className="w-12 h-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-xl font-bold hover:bg-gray-50 active:scale-95 transition-all text-eco-green-dark"
+                                    >
+                                        +
+                                    </button>
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* Subtipo Selector */}
                         <div className="space-y-2">
@@ -531,7 +552,7 @@ export default function CameraScanner({ userId, onScanComplete }: CameraScannerP
                         <div className="flex items-center justify-between p-4 bg-eco-cream/20 rounded-2xl border border-dashed border-eco-green/20">
                             <span className="text-sm font-medium text-gray-600">Puntos estimados a obtener</span>
                             <span className="text-xl font-bold text-eco-green-dark">
-                                +{BIN_INFO[scanResult.material].points * cantidad} ⭐
+                                +{BIN_INFO[scanResult.material].points * (Number(cantidad) || 1)} ⭐
                             </span>
                         </div>
 

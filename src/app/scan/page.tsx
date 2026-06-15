@@ -8,7 +8,7 @@ import { BIN_INFO } from '@/lib/supabase';
 import type { IdentifiedUser } from '@/lib/useIdentity';
 
 export default function ScanPage() {
-    const { user, loading, refreshProfile } = useAuth();
+    const { user, profile, loading, refreshProfile } = useAuth();
     const [phase, setPhase] = useState<'identify' | 'scan'>('identify');
     const [identifiedStudent, setIdentifiedStudent] = useState<IdentifiedUser | null>(null);
 
@@ -106,6 +106,7 @@ export default function ScanPage() {
 
                         <CameraScanner
                             userId={identifiedStudent?.id || user?.id}
+                            isAdmin={profile?.is_admin || false}
                             onScanComplete={() => refreshProfile()}
                         />
                     </>
