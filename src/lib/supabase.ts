@@ -30,6 +30,15 @@ export interface RecyclingLog {
     created_at: string;
     cantidad?: number;
     tipo_detalle?: string;
+    peso?: number | null;
+    unidad_peso?: 'kg' | 'lb' | null;
+}
+
+export interface WeightPointsConfig {
+    material: 'plastico' | 'lata' | 'comun';
+    points_per_kg: number;
+    points_per_lb: number;
+    updated_at?: string;
 }
 
 export interface UGBCoupon {

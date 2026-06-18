@@ -18,12 +18,34 @@ export default function ImpactStats({ userId }: ImpactStatsProps) {
         setLoading(true);
         const { data } = await supabase
             .from('recycling_logs')
-            .select('material, cantidad')
+            .select('material, cantidad, peso, unidad_peso')
             .eq('user_id', userId!);
 
         if (data) {
-            setPlasticCount(data.filter((r) => r.material === 'plastico').reduce((acc, r) => acc + (r.cantidad || 1), 0));
-            setCanCount(data.filter((r) => r.material === 'lata').reduce((acc, r) => acc + (r.cantidad || 1), 0));
+            let pCount = 0;
+            let cCount = 0;
+
+            data.forEach((r) => {
+                if (r.peso) {
+                    // Convert weight to equivalent units (1 plastic bottle ≈ 0.03 kg, 1 can ≈ 0.015 kg)
+                    const weightInKg = r.unidad_peso === 'lb' ? r.peso * 0.453592 : r.peso;
+                    if (r.material === 'plastico') {
+                        pCount += weightInKg / 0.03;
+                    } else if (r.material === 'lata') {
+                        cCount += weightInKg / 0.015;
+                    }
+                } else {
+                    const qty = r.cantidad || 1;
+                    if (r.material === 'plastico') {
+                        pCount += qty;
+                    } else if (r.material === 'lata') {
+                        cCount += qty;
+                    }
+                }
+            });
+
+            setPlasticCount(Math.round(pCount));
+            setCanCount(Math.round(cCount));
         }
         setLoading(false);
     }, [userId]);

@@ -20,7 +20,7 @@ export default function AdminPage() {
     const { user, profile, loading } = useAuth();
     
     // UI state
-    const [activeTab, setActiveTab] = useState<'users' | 'logs' | 'coupons' | 'manual'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'logs' | 'coupons' | 'manual' | 'config'>('users');
     const [searchQuery, setSearchQuery] = useState('');
     const [couponSearch, setCouponSearch] = useState('');
     const [isSaving, setIsSaving] = useState(false);
@@ -36,6 +36,45 @@ export default function AdminPage() {
     const [manualOtroDetalle, setManualOtroDetalle] = useState('');
     const [manualCantidad, setManualCantidad] = useState<number | ''>(1);
     const [manualIsSaving, setManualIsSaving] = useState(false);
+
+    // Weight config state
+    const [weightConfigs, setWeightConfigs] = useState<{
+        material: 'plastico' | 'lata' | 'comun';
+        points_per_kg: number;
+        points_per_lb: number;
+    }[]>([
+        { material: 'plastico', points_per_kg: 500, points_per_lb: 227 },
+        { material: 'lata', points_per_kg: 1000, points_per_lb: 454 },
+        { material: 'comun', points_per_kg: 0, points_per_lb: 0 }
+    ]);
+    const [configPlasticPerKg, setConfigPlasticPerKg] = useState<number>(500);
+    const [configPlasticPerLb, setConfigPlasticPerLb] = useState<number>(227);
+    const [configLataPerKg, setConfigLataPerKg] = useState<number>(1000);
+    const [configLataPerLb, setConfigLataPerLb] = useState<number>(454);
+    const [configComunPerKg, setConfigComunPerKg] = useState<number>(0);
+    const [configComunPerLb, setConfigComunPerLb] = useState<number>(0);
+
+    // Manual weight register state
+    const [manualRegisterType, setManualRegisterType] = useState<'unit' | 'weight'>('unit');
+    const [manualWeight, setManualWeight] = useState<number | ''>('');
+    const [manualWeightUnit, setManualWeightUnit] = useState<'kg' | 'lb'>('kg');
+    const [manualOverridePoints, setManualOverridePoints] = useState<number | ''>(0);
+
+    // Auto-calculate points based on units or weight
+    useEffect(() => {
+        let calculated = 0;
+        if (manualRegisterType === 'unit') {
+            const pointsPerUnit = manualMaterial === 'plastico' ? 15 : manualMaterial === 'lata' ? 20 : 0;
+            calculated = pointsPerUnit * (Number(manualCantidad) || 0);
+        } else {
+            const config = weightConfigs.find(c => c.material === manualMaterial);
+            if (config) {
+                const rate = manualWeightUnit === 'kg' ? config.points_per_kg : config.points_per_lb;
+                calculated = Math.round(rate * (Number(manualWeight) || 0));
+            }
+        }
+        setManualOverridePoints(calculated);
+    }, [manualRegisterType, manualMaterial, manualCantidad, manualWeight, manualWeightUnit, weightConfigs]);
 
     // Sync default subtype when manual material changes
     useEffect(() => {
@@ -143,6 +182,33 @@ export default function AdminPage() {
                 .select('*');
             if (facError) throw facError;
             setFaculties(facs || []);
+
+            // 1b. Fetch Weight Points Config
+            const { data: wConfigs, error: wError } = await supabase
+                .from('weight_points_config')
+                .select('*');
+            if (wError) throw wError;
+            if (wConfigs && wConfigs.length > 0) {
+                setWeightConfigs(wConfigs);
+                
+                const plastic = wConfigs.find(c => c.material === 'plastico');
+                if (plastic) {
+                    setConfigPlasticPerKg(Number(plastic.points_per_kg));
+                    setConfigPlasticPerLb(Number(plastic.points_per_lb));
+                }
+                
+                const lata = wConfigs.find(c => c.material === 'lata');
+                if (lata) {
+                    setConfigLataPerKg(Number(lata.points_per_kg));
+                    setConfigLataPerLb(Number(lata.points_per_lb));
+                }
+                
+                const comun = wConfigs.find(c => c.material === 'comun');
+                if (comun) {
+                    setConfigComunPerKg(Number(comun.points_per_kg));
+                    setConfigComunPerLb(Number(comun.points_per_lb));
+                }
+            }
 
             // 2. Fetch Profiles
             const { data: profs, error: profError } = await supabase
@@ -296,34 +362,54 @@ export default function AdminPage() {
             return;
         }
 
-        const qty = Number(manualCantidad);
-        if (isNaN(qty) || qty < 1) {
-            setErrorMessage('La cantidad de residuos debe ser al menos 1.');
-            return;
+        let qty: number | null = null;
+        let weightVal: number | null = null;
+        let weightUnitVal: 'kg' | 'lb' | null = null;
+
+        if (manualRegisterType === 'unit') {
+            const parsedQty = Number(manualCantidad);
+            if (isNaN(parsedQty) || parsedQty < 1) {
+                setErrorMessage('La cantidad de residuos debe ser al menos 1.');
+                return;
+            }
+            qty = parsedQty;
+        } else {
+            const parsedWeight = Number(manualWeight);
+            if (isNaN(parsedWeight) || parsedWeight <= 0) {
+                setErrorMessage('El peso de los residuos debe ser mayor a 0.');
+                return;
+            }
+            weightVal = parsedWeight;
+            weightUnitVal = manualWeightUnit;
         }
 
         const finalDetail = manualSubtype === 'otro' 
             ? (manualOtroDetalle.trim() || 'Otro específico') 
             : manualSubtype;
 
+        // Points to award (either calculated or manually overridden)
+        const totalPoints = Number(manualOverridePoints);
+        if (isNaN(totalPoints) || totalPoints < 0) {
+            setErrorMessage('Los puntos a asignar deben ser un número no negativo.');
+            return;
+        }
+
         setManualIsSaving(true);
         setSuccessMessage(null);
         setErrorMessage(null);
 
         try {
-            // Determine points per unit
-            let pointsPerUnit = 0;
-            if (manualMaterial === 'plastico') pointsPerUnit = 15;
-            else if (manualMaterial === 'lata') pointsPerUnit = 20;
-
-            const totalPoints = pointsPerUnit * qty;
-
             // Determine CO2 to add:
-            // plastic: 0.05 kg/unit
-            // lata: 0.15 kg/unit
             let co2ToAdd = 0;
-            if (manualMaterial === 'plastico') co2ToAdd = 0.05 * qty;
-            else if (manualMaterial === 'lata') co2ToAdd = 0.15 * qty;
+            if (manualRegisterType === 'unit') {
+                if (manualMaterial === 'plastico') co2ToAdd = 0.05 * (qty || 1);
+                else if (manualMaterial === 'lata') co2ToAdd = 0.15 * (qty || 1);
+            } else {
+                // If weight registered:
+                const weightInKg = weightUnitVal === 'lb' ? (weightVal || 0) * 0.453592 : (weightVal || 0);
+                if (manualMaterial === 'plastico') co2ToAdd = 1.67 * weightInKg;
+                else if (manualMaterial === 'lata') co2ToAdd = 10.0 * weightInKg;
+            }
 
             // 1. Insert into recycling_logs
             const { error: logError } = await supabase
@@ -333,7 +419,9 @@ export default function AdminPage() {
                     material: manualMaterial,
                     puntos_ganados: totalPoints,
                     qr_validated: true,
-                    cantidad: qty,
+                    cantidad: manualRegisterType === 'unit' ? qty : null,
+                    peso: manualRegisterType === 'weight' ? weightVal : null,
+                    unidad_peso: manualRegisterType === 'weight' ? weightUnitVal : null,
                     tipo_detalle: finalDetail,
                     location: 'Registro Manual (Admin)'
                 });
@@ -369,6 +457,7 @@ export default function AdminPage() {
             setManualSelectedUser(null);
             setManualUserQuery('');
             setManualCantidad(1);
+            setManualWeight('');
             setManualMaterial('plastico');
             setManualSubtype('Botella PET pequeña (< 600ml)');
             setManualOtroDetalle('');
@@ -380,6 +469,37 @@ export default function AdminPage() {
             setErrorMessage('Error al realizar el registro manual: ' + err.message);
         } finally {
             setManualIsSaving(false);
+        }
+    };
+
+    // Save points config by weight (admin)
+    const handleSaveWeightConfig = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSaving(true);
+        setSuccessMessage(null);
+        setErrorMessage(null);
+
+        try {
+            const updates = [
+                { material: 'plastico', points_per_kg: configPlasticPerKg, points_per_lb: configPlasticPerLb, updated_at: new Date().toISOString() },
+                { material: 'lata', points_per_kg: configLataPerKg, points_per_lb: configLataPerLb, updated_at: new Date().toISOString() },
+                { material: 'comun', points_per_kg: configComunPerKg, points_per_lb: configComunPerLb, updated_at: new Date().toISOString() }
+            ];
+
+            for (const update of updates) {
+                const { error } = await supabase
+                    .from('weight_points_config')
+                    .upsert(update);
+                if (error) throw error;
+            }
+
+            setSuccessMessage("Configuración de puntos por peso actualizada exitosamente.");
+            fetchAdminData();
+        } catch (err: any) {
+            console.error("Error al actualizar la configuración de puntos:", err);
+            setErrorMessage("Error al guardar la configuración: " + err.message);
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -542,11 +662,21 @@ export default function AdminPage() {
                         onClick={() => setActiveTab('manual')}
                         className={`px-5 py-3 text-sm font-semibold rounded-t-xl transition-all ${
                             activeTab === 'manual'
-                                ? 'bg-white border-t border-x border-eco-green/20 text-eco-green-dark shadow-[0_-4px_12px_rgba(0,0,0,0.02)]'
+                                ? 'bg-white border-t border-x border-eco-green/20 text-eco-green-dark shadow-[0_-4px_12px_rgba(0,0,0,0.02)] text-eco-green-dark'
                                 : 'text-eco-gray hover:text-eco-green-dark hover:bg-white/40'
                         }`}
                     >
                         ➕ Registro Manual
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('config')}
+                        className={`px-5 py-3 text-sm font-semibold rounded-t-xl transition-all ${
+                            activeTab === 'config'
+                                ? 'bg-white border-t border-x border-eco-green/20 text-eco-green-dark shadow-[0_-4px_12px_rgba(0,0,0,0.02)]'
+                                : 'text-eco-gray hover:text-eco-green-dark hover:bg-white/40'
+                        }`}
+                    >
+                        ⚖️ Configurar Puntos
                     </button>
                 </div>
 
@@ -771,7 +901,7 @@ export default function AdminPage() {
                                                     <th className="p-3 sm:p-4">Estudiante</th>
                                                     <th className="p-3 sm:p-4">Carnet</th>
                                                     <th className="p-3 sm:p-4">Material</th>
-                                                    <th className="p-3 sm:p-4 text-center">Cant.</th>
+                                                    <th className="p-3 sm:p-4 text-center">Cant./Peso</th>
                                                     <th className="p-3 sm:p-4 text-center">Puntos Obtenidos</th>
                                                     <th className="p-3 sm:p-4 text-center">Estado QR</th>
                                                     <th className="p-3 sm:p-4">Ubicación</th>
@@ -819,7 +949,7 @@ export default function AdminPage() {
                                                                 </div>
                                                             </td>
                                                             <td className="p-3 sm:p-4 text-center font-bold text-eco-green-dark">
-                                                                x{log.cantidad || 1}
+                                                                {log.peso ? `${log.peso} ${log.unidad_peso}` : `x${log.cantidad || 1}`}
                                                             </td>
                                                             <td className="p-3 sm:p-4 text-center font-bold text-eco-green-dark">
                                                                 +{log.puntos_ganados} ⭐
@@ -973,170 +1103,389 @@ export default function AdminPage() {
                                             )}
                                         </div>
 
-                                        {/* Right Column: Waste Details */}
-                                        <div className="space-y-4">
-                                            <h3 className="text-sm font-bold text-eco-green-dark uppercase tracking-wider">2. Detalles del Residuo</h3>
+                                         {/* Right Column: Waste Details */}
+                                         <div className="space-y-4">
+                                             <h3 className="text-sm font-bold text-eco-green-dark uppercase tracking-wider">2. Detalles del Residuo</h3>
+ 
+                                             {/* Tipo de Registro (Unidades vs Peso) */}
+                                             <div className="space-y-2">
+                                                 <label className="block text-xs font-semibold text-eco-gray uppercase tracking-wider">
+                                                     Tipo de Registro
+                                                 </label>
+                                                 <div className="flex bg-eco-cream/50 p-1 rounded-xl border border-gray-200">
+                                                     <button
+                                                         type="button"
+                                                         onClick={() => setManualRegisterType('unit')}
+                                                         className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                                                             manualRegisterType === 'unit'
+                                                                 ? 'bg-white text-eco-green-dark shadow-sm'
+                                                                 : 'text-eco-gray hover:text-eco-green-dark'
+                                                         }`}
+                                                     >
+                                                         🔢 Por Unidad
+                                                     </button>
+                                                     <button
+                                                         type="button"
+                                                         onClick={() => setManualRegisterType('weight')}
+                                                         className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                                                             manualRegisterType === 'weight'
+                                                                 ? 'bg-white text-eco-green-dark shadow-sm'
+                                                                 : 'text-eco-gray hover:text-eco-green-dark'
+                                                         }`}
+                                                     >
+                                                         ⚖️ Por Peso
+                                                     </button>
+                                                 </div>
+                                             </div>
+ 
+                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                 {/* Material Selector */}
+                                                 <div className="space-y-2">
+                                                     <label htmlFor="manual-material-select" className="block text-xs font-semibold text-eco-gray uppercase tracking-wider">
+                                                         Tipo de Residuos
+                                                     </label>
+                                                     <select
+                                                         id="manual-material-select"
+                                                         value={manualMaterial}
+                                                         onChange={(e) => setManualMaterial(e.target.value as any)}
+                                                         className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-eco-green transition-colors font-medium text-eco-green-dark"
+                                                     >
+                                                         <option value="plastico">🟢 Plástico (PET)</option>
+                                                         <option value="lata">🟡 Aluminio (Lata)</option>
+                                                         <option value="comun">⚫ Basura Común</option>
+                                                     </select>
+                                                 </div>
+ 
+                                                 {/* Quantity or Weight Selector */}
+                                                 {manualRegisterType === 'unit' ? (
+                                                     <div className="space-y-2">
+                                                         <label className="block text-xs font-semibold text-eco-gray uppercase tracking-wider">
+                                                             Cantidad (Unidades)
+                                                         </label>
+                                                         <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl overflow-hidden h-[41px]">
+                                                             <button
+                                                                 type="button"
+                                                                 onClick={() => setManualCantidad(prev => Math.max(1, (typeof prev === 'number' ? prev : 1) - 1))}
+                                                                 className="px-3 h-full hover:bg-gray-100 active:bg-gray-200 text-lg font-bold text-eco-green-dark transition-colors border-r border-gray-200"
+                                                             >
+                                                                 -
+                                                             </button>
+                                                             <input
+                                                                 type="number"
+                                                                 min="1"
+                                                                 max="999"
+                                                                 value={manualCantidad}
+                                                                 onChange={(e) => {
+                                                                     const val = e.target.value;
+                                                                     if (val === '') {
+                                                                         setManualCantidad('');
+                                                                     } else {
+                                                                         const parsed = parseInt(val, 10);
+                                                                         setManualCantidad(isNaN(parsed) ? 1 : Math.max(1, Math.min(999, parsed)));
+                                                                     }
+                                                                 }}
+                                                                 onBlur={() => {
+                                                                     if (manualCantidad === '') {
+                                                                         setManualCantidad(1);
+                                                                     }
+                                                                 }}
+                                                                 className="w-full bg-transparent text-center text-sm font-bold text-eco-green-dark focus:outline-none"
+                                                             />
+                                                             <button
+                                                                 type="button"
+                                                                 onClick={() => setManualCantidad(prev => Math.min(999, (typeof prev === 'number' ? prev : 1) + 1))}
+                                                                 className="px-3 h-full hover:bg-gray-100 active:bg-gray-200 text-lg font-bold text-eco-green-dark transition-colors border-l border-gray-200"
+                                                             >
+                                                                 +
+                                                             </button>
+                                                         </div>
+                                                     </div>
+                                                 ) : (
+                                                     <div className="space-y-2">
+                                                         <label className="block text-xs font-semibold text-eco-gray uppercase tracking-wider">
+                                                             Peso Registrado
+                                                         </label>
+                                                         <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl overflow-hidden h-[41px]">
+                                                             <input
+                                                                 type="number"
+                                                                 step="0.01"
+                                                                 min="0.01"
+                                                                 placeholder="0.00"
+                                                                 value={manualWeight}
+                                                                 onChange={(e) => {
+                                                                     const val = e.target.value;
+                                                                     if (val === '') {
+                                                                         setManualWeight('');
+                                                                     } else {
+                                                                         const parsed = parseFloat(val);
+                                                                         setManualWeight(isNaN(parsed) ? '' : parsed);
+                                                                     }
+                                                                 }}
+                                                                 className="w-full pl-3 bg-transparent text-left text-sm font-bold text-eco-green-dark focus:outline-none"
+                                                             />
+                                                             <select
+                                                                 value={manualWeightUnit}
+                                                                 onChange={(e) => setManualWeightUnit(e.target.value as any)}
+                                                                 className="px-2 h-full bg-gray-100 border-l border-gray-200 text-xs font-bold text-eco-green-dark focus:outline-none outline-none"
+                                                             >
+                                                                 <option value="kg">kg</option>
+                                                                 <option value="lb">lb</option>
+                                                             </select>
+                                                         </div>
+                                                     </div>
+                                                 )}
+                                             </div>
+ 
+                                             {/* Subtype Selector */}
+                                             <div className="space-y-2">
+                                                 <label htmlFor="manual-subtype-select" className="block text-xs font-semibold text-eco-gray uppercase tracking-wider">
+                                                     Subtipo de Material
+                                                 </label>
+                                                 <select
+                                                     id="manual-subtype-select"
+                                                     value={manualSubtype}
+                                                     onChange={(e) => setManualSubtype(e.target.value)}
+                                                     className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-eco-green transition-colors font-medium text-eco-green-dark"
+                                                 >
+                                                     {manualMaterial === 'plastico' && (
+                                                         <>
+                                                             <option value="Botella PET pequeña (< 600ml)">Botella PET pequeña (&lt; 600ml) [15 pts]</option>
+                                                             <option value="Botella PET grande (>= 600ml)">Botella PET grande (&gt;= 600ml) [15 pts]</option>
+                                                             <option value="Envase HDPE (Jugos/Lácteos)">Envase HDPE (Jugos/Lácteos) [15 pts]</option>
+                                                             <option value="Vaso Desechable Plástico">Vaso Desechable Plástico [15 pts]</option>
+                                                             <option value="otro">Otro plástico reciclable...</option>
+                                                         </>
+                                                     )}
+                                                     {manualMaterial === 'lata' && (
+                                                         <>
+                                                             <option value="Lata de Refresco/Bebida (Aluminio)">Lata de Refresco/Bebida (Aluminio) [20 pts]</option>
+                                                             <option value="Lata de Conservas (Hojalata)">Lata de Conservas (Hojalata) [20 pts]</option>
+                                                             <option value="Lata de Aluminio (Otros)">Lata de Aluminio (Otros) [20 pts]</option>
+                                                             <option value="otro">Otro metal/lata reciclable...</option>
+                                                         </>
+                                                     )}
+                                                     {manualMaterial === 'comun' && (
+                                                         <>
+                                                             <option value="Envolturas/Empaques de Snacks">Envolturas/Empaques de Snacks [0 pts]</option>
+                                                             <option value="Papel/Cartón Sucio">Papel/Cartón Sucio [0 pts]</option>
+                                                             <option value="Servilletas/Pañuelos Usados">Servilletas/Pañuelos Usados [0 pts]</option>
+                                                             <option value="otro">Otro residuo común...</option>
+                                                         </>
+                                                     )}
+                                                 </select>
+                                             </div>
+ 
+                                             {/* Otro Input */}
+                                             {manualSubtype === 'otro' && (
+                                                 <div className="space-y-2 animate-fade-in">
+                                                     <label htmlFor="manual-otro-detalle" className="block text-xs font-semibold text-eco-gray uppercase tracking-wider">
+                                                         Especificar Detalle del Material
+                                                     </label>
+                                                     <input
+                                                         id="manual-otro-detalle"
+                                                         type="text"
+                                                         placeholder="Ej. Envase de yogurt, Alambre de cobre, etc."
+                                                         value={manualOtroDetalle}
+                                                         onChange={(e) => setManualOtroDetalle(e.target.value)}
+                                                         className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-eco-green transition-all"
+                                                         required
+                                                     />
+                                                 </div>
+                                             )}
+ 
+                                             {/* Puntos Ajustables */}
+                                             <div className="space-y-2">
+                                                 <label className="block text-xs font-semibold text-eco-gray uppercase tracking-wider">
+                                                     Eco-Puntos a Asignar (Ajustable)
+                                                 </label>
+                                                 <input
+                                                     type="number"
+                                                     value={manualOverridePoints}
+                                                     onChange={(e) => setManualOverridePoints(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value) || 0))}
+                                                     className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-base focus:outline-none focus:border-eco-green transition-all font-bold text-eco-green-dark"
+                                                     min="0"
+                                                 />
+                                             </div>
+ 
+                                             {/* Summary Calculation Box */}
+                                             {(() => {
+                                                 const config = weightConfigs.find(c => c.material === manualMaterial);
+                                                 const rate = manualWeightUnit === 'kg' ? config?.points_per_kg : config?.points_per_lb;
+                                                 const calculatedPoints = manualRegisterType === 'unit'
+                                                     ? (manualMaterial === 'plastico' ? 15 : manualMaterial === 'lata' ? 20 : 0) * (Number(manualCantidad) || 1)
+                                                     : Math.round((rate || 0) * (Number(manualWeight) || 0));
+                                                 
+                                                 let co2ToAdd = 0;
+                                                 if (manualRegisterType === 'unit') {
+                                                     if (manualMaterial === 'plastico') co2ToAdd = 0.05 * (Number(manualCantidad) || 1);
+                                                     else if (manualMaterial === 'lata') co2ToAdd = 0.15 * (Number(manualCantidad) || 1);
+                                                 } else {
+                                                     const weightInKg = manualWeightUnit === 'lb' ? (Number(manualWeight) || 0) * 0.453592 : (Number(manualWeight) || 0);
+                                                     if (manualMaterial === 'plastico') co2ToAdd = 1.67 * weightInKg;
+                                                     else if (manualMaterial === 'lata') co2ToAdd = 10.0 * weightInKg;
+                                                 }
+                                                 return (
+                                                     <div className="bg-eco-cream/25 border border-dashed border-eco-green/20 rounded-2xl p-4 flex flex-col gap-2 text-xs">
+                                                         <div className="flex justify-between items-center text-eco-gray font-semibold">
+                                                             <span>Tarifa Establecida:</span>
+                                                             <span>
+                                                                 {manualRegisterType === 'unit'
+                                                                     ? `${manualMaterial === 'plastico' ? '15' : manualMaterial === 'lata' ? '20' : '0'} ⭐ / unidad`
+                                                                     : `${rate || 0} ⭐ / ${manualWeightUnit}`}
+                                                             </span>
+                                                         </div>
+                                                         <div className="flex justify-between items-center text-eco-gray font-semibold">
+                                                             <span>Tasa de CO₂ Evitado:</span>
+                                                             <span>
+                                                                 {manualRegisterType === 'unit'
+                                                                     ? `${manualMaterial === 'plastico' ? '0.05' : manualMaterial === 'lata' ? '0.15' : '0'} kg / unidad`
+                                                                     : `${manualMaterial === 'plastico' ? '1.67' : manualMaterial === 'lata' ? '10.0' : '0'} kg / kg`}
+                                                             </span>
+                                                         </div>
+                                                         <div className="flex justify-between items-center pt-2 border-t border-dashed border-eco-green/10 font-bold text-eco-green-dark">
+                                                             <span>Puntos Calculados Automáticamente:</span>
+                                                             <span>
+                                                                 +{calculatedPoints} ⭐
+                                                             </span>
+                                                         </div>
+                                                         <div className="flex justify-between items-center">
+                                                             <span className="text-eco-gray font-semibold">Total CO₂ Evitado Estimado:</span>
+                                                             <span className="font-bold text-eco-green">
+                                                                 +{co2ToAdd.toFixed(2)} kg
+                                                             </span>
+                                                         </div>
+                                                     </div>
+                                                 );
+                                             })()}
+ 
+                                             {/* Submit Button */}
+                                             <Button
+                                                 type="submit"
+                                                 variant="primary"
+                                                 size="lg"
+                                                 className="w-full shadow-lg shadow-eco-green/10"
+                                                 disabled={!manualSelectedUser || manualIsSaving}
+                                                 isLoading={manualIsSaving}
+                                             >
+                                                 ✍️ Registrar Desechos y Asignar Puntos
+                                             </Button>
+                                         </div>
+                                     </form>
+                                </div>
+                            )}
 
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                {/* Material Selector */}
-                                                <div className="space-y-2">
-                                                    <label htmlFor="manual-material-select" className="block text-xs font-semibold text-eco-gray uppercase tracking-wider">
-                                                        Tipo de Residuos
-                                                    </label>
-                                                    <select
-                                                        id="manual-material-select"
-                                                        value={manualMaterial}
-                                                        onChange={(e) => setManualMaterial(e.target.value as any)}
-                                                        className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-eco-green transition-colors font-medium text-eco-green-dark"
-                                                    >
-                                                        <option value="plastico">🟢 Plástico (PET)</option>
-                                                        <option value="lata">🟡 Aluminio (Lata)</option>
-                                                        <option value="comun">⚫ Basura Común</option>
-                                                    </select>
+                            {/* TAB 5: POINTS CONFIGURATION */}
+                            {activeTab === 'config' && (
+                                <div className="p-4 sm:p-6 space-y-6 animate-fade-in">
+                                    <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center border-b border-gray-100 pb-4">
+                                        <div>
+                                            <h2 className="text-lg font-bold text-eco-green-dark">⚙️ Configuración de Puntos por Peso</h2>
+                                            <p className="text-xs text-eco-gray mt-0.5">Establece las equivalencias de puntos por kilogramo y por libra de residuo</p>
+                                        </div>
+                                    </div>
+
+                                    <form onSubmit={handleSaveWeightConfig} className="space-y-6 max-w-2xl">
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                            {/* Plastico */}
+                                            <Card className="border border-green-100/50 bg-green-50/10">
+                                                <div className="flex items-center gap-2 mb-4">
+                                                    <span className="text-xl">🟢</span>
+                                                    <h3 className="font-bold text-eco-green-dark text-sm">Plástico (PET)</h3>
                                                 </div>
-
-                                                {/* Quantity Selector */}
-                                                <div className="space-y-2">
-                                                    <label className="block text-xs font-semibold text-eco-gray uppercase tracking-wider">
-                                                        Cantidad (Unidades)
-                                                    </label>
-                                                    <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl overflow-hidden h-[41px]">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setManualCantidad(prev => Math.max(1, (typeof prev === 'number' ? prev : 1) - 1))}
-                                                            className="px-3 h-full hover:bg-gray-100 active:bg-gray-200 text-lg font-bold text-eco-green-dark transition-colors border-r border-gray-200"
-                                                        >
-                                                            -
-                                                        </button>
+                                                <div className="space-y-3">
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-eco-gray uppercase">Puntos por Kilogramo (Kg)</label>
                                                         <input
                                                             type="number"
-                                                            min="1"
-                                                            max="999"
-                                                            value={manualCantidad}
-                                                            onChange={(e) => {
-                                                                const val = e.target.value;
-                                                                if (val === '') {
-                                                                    setManualCantidad('');
-                                                                } else {
-                                                                    const parsed = parseInt(val, 10);
-                                                                    setManualCantidad(isNaN(parsed) ? 1 : Math.max(1, Math.min(999, parsed)));
-                                                                }
-                                                            }}
-                                                            onBlur={() => {
-                                                                if (manualCantidad === '') {
-                                                                    setManualCantidad(1);
-                                                                }
-                                                            }}
-                                                            className="w-full bg-transparent text-center text-sm font-bold text-eco-green-dark focus:outline-none"
+                                                            value={configPlasticPerKg}
+                                                            onChange={(e) => setConfigPlasticPerKg(Math.max(0, parseInt(e.target.value) || 0))}
+                                                            className="w-full mt-1 px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-eco-green-dark focus:outline-none focus:border-eco-green"
+                                                            min="0"
                                                         />
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setManualCantidad(prev => Math.min(999, (typeof prev === 'number' ? prev : 1) + 1))}
-                                                            className="px-3 h-full hover:bg-gray-100 active:bg-gray-200 text-lg font-bold text-eco-green-dark transition-colors border-l border-gray-200"
-                                                        >
-                                                            +
-                                                        </button>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-eco-gray uppercase">Puntos por Libra (Lb)</label>
+                                                        <input
+                                                            type="number"
+                                                            value={configPlasticPerLb}
+                                                            onChange={(e) => setConfigPlasticPerLb(Math.max(0, parseInt(e.target.value) || 0))}
+                                                            className="w-full mt-1 px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-eco-green-dark focus:outline-none focus:border-eco-green"
+                                                            min="0"
+                                                        />
                                                     </div>
                                                 </div>
-                                            </div>
+                                            </Card>
 
-                                            {/* Subtype Selector */}
-                                            <div className="space-y-2">
-                                                <label htmlFor="manual-subtype-select" className="block text-xs font-semibold text-eco-gray uppercase tracking-wider">
-                                                    Subtipo de Material
-                                                </label>
-                                                <select
-                                                    id="manual-subtype-select"
-                                                    value={manualSubtype}
-                                                    onChange={(e) => setManualSubtype(e.target.value)}
-                                                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-eco-green transition-colors font-medium text-eco-green-dark"
-                                                >
-                                                    {manualMaterial === 'plastico' && (
-                                                        <>
-                                                            <option value="Botella PET pequeña (< 600ml)">Botella PET pequeña (&lt; 600ml) [15 pts]</option>
-                                                            <option value="Botella PET grande (>= 600ml)">Botella PET grande (&gt;= 600ml) [15 pts]</option>
-                                                            <option value="Envase HDPE (Jugos/Lácteos)">Envase HDPE (Jugos/Lácteos) [15 pts]</option>
-                                                            <option value="Vaso Desechable Plástico">Vaso Desechable Plástico [15 pts]</option>
-                                                            <option value="otro">Otro plástico reciclable...</option>
-                                                        </>
-                                                    )}
-                                                    {manualMaterial === 'lata' && (
-                                                        <>
-                                                            <option value="Lata de Refresco/Bebida (Aluminio)">Lata de Refresco/Bebida (Aluminio) [20 pts]</option>
-                                                            <option value="Lata de Conservas (Hojalata)">Lata de Conservas (Hojalata) [20 pts]</option>
-                                                            <option value="Lata de Aluminio (Otros)">Lata de Aluminio (Otros) [20 pts]</option>
-                                                            <option value="otro">Otro metal/lata reciclable...</option>
-                                                        </>
-                                                    )}
-                                                    {manualMaterial === 'comun' && (
-                                                        <>
-                                                            <option value="Envolturas/Empaques de Snacks">Envolturas/Empaques de Snacks [0 pts]</option>
-                                                            <option value="Papel/Cartón Sucio">Papel/Cartón Sucio [0 pts]</option>
-                                                            <option value="Servilletas/Pañuelos Usados">Servilletas/Pañuelos Usados [0 pts]</option>
-                                                            <option value="otro">Otro residuo común...</option>
-                                                        </>
-                                                    )}
-                                                </select>
-                                            </div>
+                                            {/* Lata */}
+                                            <Card className="border border-amber-100/50 bg-amber-50/10">
+                                                <div className="flex items-center gap-2 mb-4">
+                                                    <span className="text-xl">🟡</span>
+                                                    <h3 className="font-bold text-eco-green-dark text-sm">Aluminio (Lata)</h3>
+                                                </div>
+                                                <div className="space-y-3">
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-eco-gray uppercase">Puntos por Kilogramo (Kg)</label>
+                                                        <input
+                                                            type="number"
+                                                            value={configLataPerKg}
+                                                            onChange={(e) => setConfigLataPerKg(Math.max(0, parseInt(e.target.value) || 0))}
+                                                            className="w-full mt-1 px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-eco-green-dark focus:outline-none focus:border-eco-green"
+                                                            min="0"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-eco-gray uppercase">Puntos por Libra (Lb)</label>
+                                                        <input
+                                                            type="number"
+                                                            value={configLataPerLb}
+                                                            onChange={(e) => setConfigLataPerLb(Math.max(0, parseInt(e.target.value) || 0))}
+                                                            className="w-full mt-1 px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-eco-green-dark focus:outline-none focus:border-eco-green"
+                                                            min="0"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </Card>
 
-                                            {/* Otro Input */}
-                                            {manualSubtype === 'otro' && (
-                                                <div className="space-y-2 animate-fade-in">
-                                                    <label htmlFor="manual-otro-detalle" className="block text-xs font-semibold text-eco-gray uppercase tracking-wider">
-                                                        Especificar Detalle del Material
-                                                    </label>
-                                                    <input
-                                                        id="manual-otro-detalle"
-                                                        type="text"
-                                                        placeholder="Ej. Envase de yogurt, Alambre de cobre, etc."
-                                                        value={manualOtroDetalle}
-                                                        onChange={(e) => setManualOtroDetalle(e.target.value)}
-                                                        className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-eco-green transition-all"
-                                                        required
-                                                    />
+                                            {/* Basura Comun */}
+                                            <Card className="border border-gray-200 bg-gray-50/10">
+                                                <div className="flex items-center gap-2 mb-4">
+                                                    <span className="text-xl">⚫</span>
+                                                    <h3 className="font-bold text-eco-green-dark text-sm">Basura Común</h3>
                                                 </div>
-                                            )}
-
-                                            {/* Summary Calculation Box */}
-                                            <div className="bg-eco-cream/25 border border-dashed border-eco-green/20 rounded-2xl p-4 flex flex-col gap-2">
-                                                <div className="flex justify-between items-center text-xs text-eco-gray font-semibold">
-                                                    <span>Puntos por Unidad:</span>
-                                                    <span>
-                                                        {manualMaterial === 'plastico' ? '15 ⭐' : manualMaterial === 'lata' ? '20 ⭐' : '0 ⭐'}
-                                                    </span>
+                                                <div className="space-y-3">
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-eco-gray uppercase">Puntos por Kilogramo (Kg)</label>
+                                                        <input
+                                                            type="number"
+                                                            value={configComunPerKg}
+                                                            onChange={(e) => setConfigComunPerKg(Math.max(0, parseInt(e.target.value) || 0))}
+                                                            className="w-full mt-1 px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-eco-green-dark focus:outline-none focus:border-eco-green"
+                                                            min="0"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-eco-gray uppercase">Puntos por Libra (Lb)</label>
+                                                        <input
+                                                            type="number"
+                                                            value={configComunPerLb}
+                                                            onChange={(e) => setConfigComunPerLb(Math.max(0, parseInt(e.target.value) || 0))}
+                                                            className="w-full mt-1 px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-eco-green-dark focus:outline-none focus:border-eco-green"
+                                                            min="0"
+                                                        />
+                                                    </div>
                                                 </div>
-                                                <div className="flex justify-between items-center text-xs text-eco-gray font-semibold">
-                                                    <span>CO₂ Evitado por Unidad:</span>
-                                                    <span>
-                                                        {manualMaterial === 'plastico' ? '0.05 kg' : manualMaterial === 'lata' ? '0.15 kg' : '0.00 kg'}
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between items-center pt-2 border-t border-dashed border-eco-green/10">
-                                                    <span className="text-sm font-bold text-eco-green-dark">Total Eco-Puntos a Sumar:</span>
-                                                    <span className="text-lg font-extrabold text-eco-green-dark">
-                                                        +{((manualMaterial === 'plastico' ? 15 : manualMaterial === 'lata' ? 20 : 0) * (Number(manualCantidad) || 1))} ⭐
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between items-center text-xs">
-                                                    <span className="text-eco-gray font-semibold">Total CO₂ Evitado Estimado:</span>
-                                                    <span className="font-bold text-eco-green">
-                                                        +{((manualMaterial === 'plastico' ? 0.05 : manualMaterial === 'lata' ? 0.15 : 0) * (Number(manualCantidad) || 1)).toFixed(2)} kg
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            {/* Submit Button */}
-                                            <Button
-                                                type="submit"
-                                                variant="primary"
-                                                size="lg"
-                                                className="w-full shadow-lg shadow-eco-green/10"
-                                                disabled={!manualSelectedUser || manualIsSaving}
-                                                isLoading={manualIsSaving}
-                                            >
-                                                ✍️ Registrar Desechos y Asignar Puntos
-                                            </Button>
+                                            </Card>
                                         </div>
+
+                                        <Button
+                                            type="submit"
+                                            variant="primary"
+                                            className="w-full sm:w-auto shadow-md shadow-eco-green/10"
+                                            disabled={isSaving}
+                                            isLoading={isSaving}
+                                        >
+                                            💾 Guardar Configuración de Puntos
+                                        </Button>
                                     </form>
                                 </div>
                             )}

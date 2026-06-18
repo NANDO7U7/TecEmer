@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/useAuth';
 import { supabase, BIN_INFO, COUPON_CATALOG } from '@/lib/supabase';
-import type { RecyclingLog, UGBCoupon } from '@/lib/supabase';
+import type { RecyclingLog, UGBCoupon, WeightPointsConfig } from '@/lib/supabase';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Accordion from '@/components/ui/Accordion';
@@ -28,6 +28,7 @@ function DashboardContent() {
     const searchParams = useSearchParams();
     const [logs, setLogs] = useState<RecyclingLog[]>([]);
     const [coupons, setCoupons] = useState<UGBCoupon[]>([]);
+    const [weightConfigs, setWeightConfigs] = useState<WeightPointsConfig[]>([]);
     const [loadingData, setLoadingData] = useState(true);
     const [redeemingId, setRedeemingId] = useState<number | null>(null);
     const [activeQR, setActiveQR] = useState<{
@@ -137,7 +138,7 @@ function DashboardContent() {
         if (!user) return;
         setLoadingData(true);
 
-        const [logsRes, couponsRes] = await Promise.all([
+        const [logsRes, couponsRes, configRes] = await Promise.all([
             supabase
                 .from('recycling_logs')
                 .select('*')
@@ -149,10 +150,14 @@ function DashboardContent() {
                 .select('*')
                 .eq('user_id', user.id)
                 .order('created_at', { ascending: false }),
+            supabase
+                .from('weight_points_config')
+                .select('*'),
         ]);
 
         if (logsRes.data) setLogs(logsRes.data);
         if (couponsRes.data) setCoupons(couponsRes.data);
+        if (configRes.data) setWeightConfigs(configRes.data);
         setLoadingData(false);
     }, [user]);
 
@@ -380,7 +385,7 @@ function DashboardContent() {
                                             <div>
                                                 <p className="text-sm font-medium text-eco-green-dark">
                                                     {BIN_INFO[log.material]?.label || log.material}
-                                                    {log.cantidad && log.cantidad > 1 && ` (x${log.cantidad})`}
+                                                    {log.peso ? ` (${log.peso} ${log.unidad_peso})` : (log.cantidad && log.cantidad > 1 && ` (x${log.cantidad})`)}
                                                 </p>
                                                 {log.tipo_detalle && (
                                                     <p className="text-[11px] text-gray-500 font-semibold mb-0.5 leading-none">
@@ -418,18 +423,40 @@ function DashboardContent() {
                             <h4 className="font-bold text-eco-green-dark text-sm mb-2 flex items-center gap-1.5">
                                 💡 Reglas de Eco-Puntos
                             </h4>
-                            <ul className="space-y-1.5 text-xs text-eco-green-dark/85">
-                                <li className="flex items-center justify-between">
-                                    <span>🟢 Plásticos (Verde):</span>
-                                    <span className="font-bold text-eco-green">+15 Puntos ⭐</span>
+                            <ul className="space-y-2 text-xs text-eco-green-dark/85">
+                                <li className="flex flex-col gap-0.5">
+                                    <div className="flex items-center justify-between font-semibold">
+                                        <span>🟢 Plásticos (PET):</span>
+                                        <span className="font-bold text-eco-green">+15 Puntos ⭐ / unid</span>
+                                    </div>
+                                    {(() => {
+                                        const config = weightConfigs.find(c => c.material === 'plastico');
+                                        return config && (
+                                            <span className="text-[10px] text-eco-green-dark/70">
+                                                ⚖️ Por Peso: +{config.points_per_kg} pts/kg | +{config.points_per_lb} pts/lb
+                                            </span>
+                                        );
+                                    })()}
                                 </li>
-                                <li className="flex items-center justify-between">
-                                    <span>🟡 Latas (Amarillo):</span>
-                                    <span className="font-bold text-amber-600">+20 Puntos ⭐</span>
+                                <li className="flex flex-col gap-0.5 border-t border-green-200/20 pt-1.5">
+                                    <div className="flex items-center justify-between font-semibold">
+                                        <span>🟡 Latas (Aluminio):</span>
+                                        <span className="font-bold text-amber-600">+20 Puntos ⭐ / unid</span>
+                                    </div>
+                                    {(() => {
+                                        const config = weightConfigs.find(c => c.material === 'lata');
+                                        return config && (
+                                            <span className="text-[10px] text-eco-green-dark/70">
+                                                ⚖️ Por Peso: +{config.points_per_kg} pts/kg | +{config.points_per_lb} pts/lb
+                                            </span>
+                                        );
+                                    })()}
                                 </li>
-                                <li className="flex items-center justify-between">
-                                    <span>⚫ Común (Negro):</span>
-                                    <span className="font-bold text-gray-500">0 Puntos (Descarte)</span>
+                                <li className="flex flex-col gap-0.5 border-t border-green-200/20 pt-1.5">
+                                    <div className="flex items-center justify-between font-semibold">
+                                        <span>⚫ Común (Negro):</span>
+                                        <span className="font-bold text-gray-500">0 Puntos (Descarte)</span>
+                                    </div>
                                 </li>
                             </ul>
                         </Card>
