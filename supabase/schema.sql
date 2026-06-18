@@ -74,6 +74,10 @@ CREATE POLICY "Users can update own logs" ON recycling_logs FOR UPDATE USING (au
 -- Admin policies for recycling_logs
 CREATE POLICY "Admins can view all logs" ON recycling_logs
   FOR SELECT USING (is_admin(auth.uid()));
+CREATE POLICY "Admins can insert any logs" ON recycling_logs
+  FOR INSERT WITH CHECK (is_admin(auth.uid()));
+CREATE POLICY "Admins can update any logs" ON recycling_logs
+  FOR UPDATE USING (is_admin(auth.uid()));
 
 -- 4. UGB_COUPONS (store rewards)
 CREATE TABLE ugb_coupons (

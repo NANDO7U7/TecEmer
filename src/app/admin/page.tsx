@@ -20,13 +20,34 @@ export default function AdminPage() {
     const { user, profile, loading } = useAuth();
     
     // UI state
-    const [activeTab, setActiveTab] = useState<'users' | 'logs' | 'coupons'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'logs' | 'coupons' | 'manual'>('users');
     const [searchQuery, setSearchQuery] = useState('');
     const [couponSearch, setCouponSearch] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [isScanningQR, setIsScanningQR] = useState(false);
+
+    // Manual register state
+    const [manualUserQuery, setManualUserQuery] = useState('');
+    const [manualSelectedUser, setManualSelectedUser] = useState<Profile | null>(null);
+    const [manualMaterial, setManualMaterial] = useState<'plastico' | 'lata' | 'comun'>('plastico');
+    const [manualSubtype, setManualSubtype] = useState('Botella PET pequeña (< 600ml)');
+    const [manualOtroDetalle, setManualOtroDetalle] = useState('');
+    const [manualCantidad, setManualCantidad] = useState<number | ''>(1);
+    const [manualIsSaving, setManualIsSaving] = useState(false);
+
+    // Sync default subtype when manual material changes
+    useEffect(() => {
+        if (manualMaterial === 'plastico') {
+            setManualSubtype('Botella PET pequeña (< 600ml)');
+        } else if (manualMaterial === 'lata') {
+            setManualSubtype('Lata de Refresco/Bebida (Aluminio)');
+        } else {
+            setManualSubtype('Envolturas/Empaques de Snacks');
+        }
+        setManualOtroDetalle('');
+    }, [manualMaterial]);
 
     // Initialize and clean up webcam scanner
     useEffect(() => {
@@ -267,6 +288,101 @@ export default function AdminPage() {
         }
     };
 
+    // Handle manual waste registration and point assignment
+    const handleManualRegister = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!manualSelectedUser) {
+            setErrorMessage('Por favor, selecciona un estudiante antes de registrar.');
+            return;
+        }
+
+        const qty = Number(manualCantidad);
+        if (isNaN(qty) || qty < 1) {
+            setErrorMessage('La cantidad de residuos debe ser al menos 1.');
+            return;
+        }
+
+        const finalDetail = manualSubtype === 'otro' 
+            ? (manualOtroDetalle.trim() || 'Otro específico') 
+            : manualSubtype;
+
+        setManualIsSaving(true);
+        setSuccessMessage(null);
+        setErrorMessage(null);
+
+        try {
+            // Determine points per unit
+            let pointsPerUnit = 0;
+            if (manualMaterial === 'plastico') pointsPerUnit = 15;
+            else if (manualMaterial === 'lata') pointsPerUnit = 20;
+
+            const totalPoints = pointsPerUnit * qty;
+
+            // Determine CO2 to add:
+            // plastic: 0.05 kg/unit
+            // lata: 0.15 kg/unit
+            let co2ToAdd = 0;
+            if (manualMaterial === 'plastico') co2ToAdd = 0.05 * qty;
+            else if (manualMaterial === 'lata') co2ToAdd = 0.15 * qty;
+
+            // 1. Insert into recycling_logs
+            const { error: logError } = await supabase
+                .from('recycling_logs')
+                .insert({
+                    user_id: manualSelectedUser.id,
+                    material: manualMaterial,
+                    puntos_ganados: totalPoints,
+                    qr_validated: true,
+                    cantidad: qty,
+                    tipo_detalle: finalDetail,
+                    location: 'Registro Manual (Admin)'
+                });
+
+            if (logError) throw logError;
+
+            // 2. Fetch current points and scans of the user
+            const { data: currentProf, error: fetchError } = await supabase
+                .from('profiles')
+                .select('eco_puntos, total_scans, total_co2_saved')
+                .eq('id', manualSelectedUser.id)
+                .single();
+
+            if (fetchError) throw fetchError;
+
+            // 3. Update profiles table
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .update({
+                    eco_puntos: (currentProf.eco_puntos || 0) + totalPoints,
+                    total_scans: (currentProf.total_scans || 0) + 1,
+                    total_co2_saved: (currentProf.total_co2_saved || 0) + co2ToAdd,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', manualSelectedUser.id);
+
+            if (profileError) throw profileError;
+
+            // Reset form and UI state
+            setSuccessMessage(`¡Registro manual exitoso! Se acreditaron +${totalPoints} ⭐ eco-puntos y se sumaron ${co2ToAdd.toFixed(2)} kg CO₂ a ${manualSelectedUser.name || 'el estudiante'}.`);
+            
+            // Clean up selections
+            setManualSelectedUser(null);
+            setManualUserQuery('');
+            setManualCantidad(1);
+            setManualMaterial('plastico');
+            setManualSubtype('Botella PET pequeña (< 600ml)');
+            setManualOtroDetalle('');
+            
+            // Refresh data in tables and counters
+            fetchAdminData();
+        } catch (err: any) {
+            console.error('Error al registrar manualmente:', err);
+            setErrorMessage('Error al realizar el registro manual: ' + err.message);
+        } finally {
+            setManualIsSaving(false);
+        }
+    };
+
     // Filter profiles based on search query
     const filteredProfiles = profiles.filter(p => {
         const query = searchQuery.toLowerCase();
@@ -286,6 +402,17 @@ export default function AdminPage() {
             (c.profile_carnet?.toLowerCase().includes(query))
         );
     });
+
+    // Filter profiles for manual selection based on manualUserQuery
+    const manualFilteredProfiles = manualUserQuery.trim() === ''
+        ? []
+        : profiles.filter(p => {
+            const query = manualUserQuery.toLowerCase();
+            return (
+                (p.name?.toLowerCase().includes(query)) ||
+                (p.carnet?.toLowerCase().includes(query))
+            );
+        }).slice(0, 5);
 
     if (loading || !profile || !profile.is_admin) {
         return (
@@ -410,6 +537,16 @@ export default function AdminPage() {
                         }`}
                     >
                         📋 Bitácora de Reciclaje
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('manual')}
+                        className={`px-5 py-3 text-sm font-semibold rounded-t-xl transition-all ${
+                            activeTab === 'manual'
+                                ? 'bg-white border-t border-x border-eco-green/20 text-eco-green-dark shadow-[0_-4px_12px_rgba(0,0,0,0.02)]'
+                                : 'text-eco-gray hover:text-eco-green-dark hover:bg-white/40'
+                        }`}
+                    >
+                        ➕ Registro Manual
                     </button>
                 </div>
 
@@ -709,6 +846,298 @@ export default function AdminPage() {
                                             </tbody>
                                         </table>
                                     </div>
+                                </div>
+                            )}
+
+                            {/* TAB 4: MANUAL REGISTER */}
+                            {activeTab === 'manual' && (
+                                <div className="p-4 sm:p-6 space-y-6">
+                                    <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center border-b border-gray-100 pb-4">
+                                        <div>
+                                            <h2 className="text-lg font-bold text-eco-green-dark">Registro Manual de Desechos</h2>
+                                            <p className="text-xs text-eco-gray mt-0.5">Acredita Eco-Puntos y registra residuos directamente a la cuenta del estudiante</p>
+                                        </div>
+                                    </div>
+
+                                    <form onSubmit={handleManualRegister} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* Left Column: Student Search & Info */}
+                                        <div className="space-y-4">
+                                            <h3 className="text-sm font-bold text-eco-green-dark uppercase tracking-wider">1. Buscar Estudiante</h3>
+                                            
+                                            {!manualSelectedUser ? (
+                                                <div className="space-y-2 relative">
+                                                    <label htmlFor="manual-student-search" className="block text-xs font-semibold text-eco-gray uppercase tracking-wider">
+                                                        Buscar por nombre o carnet
+                                                    </label>
+                                                    <div className="relative">
+                                                        <input
+                                                            id="manual-student-search"
+                                                            type="text"
+                                                            placeholder="Ej. SMSS141122 o Juan Pérez..."
+                                                            value={manualUserQuery}
+                                                            onChange={(e) => setManualUserQuery(e.target.value)}
+                                                            className="w-full pl-10 pr-4 py-3 bg-eco-cream/30 border border-gray-200 rounded-xl focus:outline-none focus:border-eco-green focus:ring-2 focus:ring-eco-green/15 transition-all text-sm animate-fade-in"
+                                                        />
+                                                        <span className="absolute left-3.5 top-3.5 text-eco-gray text-sm">🔍</span>
+                                                        {manualUserQuery && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setManualUserQuery('')}
+                                                                className="absolute right-3.5 top-3.5 text-xs text-gray-400 hover:text-gray-600"
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Autocomplete Dropdown list */}
+                                                    {manualFilteredProfiles.length > 0 && (
+                                                        <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl divide-y divide-gray-50 overflow-hidden max-h-60 overflow-y-auto animate-fade-in">
+                                                            {manualFilteredProfiles.map((p) => {
+                                                                const userFaculty = faculties.find(f => f.id === p.faculty_id);
+                                                                return (
+                                                                    <button
+                                                                        key={p.id}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setManualSelectedUser(p);
+                                                                            setManualUserQuery('');
+                                                                        }}
+                                                                        className="w-full text-left p-3 hover:bg-eco-cream/40 transition-colors flex items-center justify-between gap-2"
+                                                                    >
+                                                                        <div className="min-w-0">
+                                                                            <p className="font-semibold text-sm text-eco-green-dark truncate">{p.name || 'Estudiante Sin Nombre'}</p>
+                                                                            <p className="text-xs text-eco-gray font-mono mt-0.5">{p.carnet || 'S/C'}</p>
+                                                                        </div>
+                                                                        {userFaculty && (
+                                                                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0" style={{ backgroundColor: `${userFaculty.color}15`, color: userFaculty.color }}>
+                                                                                {userFaculty.emoji} {userFaculty.short_name}
+                                                                            </span>
+                                                                        )}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+
+                                                    {manualUserQuery.trim() !== '' && manualFilteredProfiles.length === 0 && (
+                                                        <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-center text-xs text-eco-gray animate-fade-in">
+                                                            No se encontraron estudiantes que coincidan.
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className="bg-eco-cream/35 border border-eco-green/10 rounded-2xl p-5 space-y-4 animate-scale-in relative overflow-hidden">
+                                                    {/* Ambient decoration */}
+                                                    <div className="absolute top-0 right-0 w-24 h-24 bg-eco-green/5 rounded-full blur-2xl -translate-y-1/3 translate-x-1/3" />
+                                                    
+                                                    <div className="flex justify-between items-start">
+                                                        <div>
+                                                            <span className="text-[9px] font-bold uppercase tracking-wider text-eco-green bg-eco-green/10 px-2 py-0.5 rounded-full">
+                                                                Estudiante Seleccionado
+                                                            </span>
+                                                            <h4 className="font-extrabold text-base text-eco-green-dark mt-2">
+                                                                {manualSelectedUser.name || 'Estudiante UGB'}
+                                                            </h4>
+                                                            <p className="text-xs font-mono text-eco-gray mt-0.5">Carnet: {manualSelectedUser.carnet || 'S/C'}</p>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setManualSelectedUser(null)}
+                                                            className="text-xs font-bold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100/60 px-2.5 py-1 rounded-lg transition-all"
+                                                        >
+                                                            Cambiar
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-dashed border-eco-green/10">
+                                                        <div>
+                                                            <p className="text-[10px] text-eco-gray font-semibold uppercase">Puntos Actuales</p>
+                                                            <p className="text-sm font-bold text-eco-green-dark mt-0.5">{manualSelectedUser.eco_puntos} ⭐</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[10px] text-eco-gray font-semibold uppercase">Facultad</p>
+                                                            {(() => {
+                                                                const userFaculty = faculties.find(f => f.id === manualSelectedUser.faculty_id);
+                                                                return userFaculty ? (
+                                                                    <p className="text-xs font-bold mt-0.5 truncate" style={{ color: userFaculty.color }}>
+                                                                        {userFaculty.emoji} {userFaculty.name}
+                                                                    </p>
+                                                                ) : (
+                                                                    <p className="text-xs text-gray-400 mt-0.5">Sin Facultad</p>
+                                                                );
+                                                            })()}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Right Column: Waste Details */}
+                                        <div className="space-y-4">
+                                            <h3 className="text-sm font-bold text-eco-green-dark uppercase tracking-wider">2. Detalles del Residuo</h3>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                {/* Material Selector */}
+                                                <div className="space-y-2">
+                                                    <label htmlFor="manual-material-select" className="block text-xs font-semibold text-eco-gray uppercase tracking-wider">
+                                                        Tipo de Residuos
+                                                    </label>
+                                                    <select
+                                                        id="manual-material-select"
+                                                        value={manualMaterial}
+                                                        onChange={(e) => setManualMaterial(e.target.value as any)}
+                                                        className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-eco-green transition-colors font-medium text-eco-green-dark"
+                                                    >
+                                                        <option value="plastico">🟢 Plástico (PET)</option>
+                                                        <option value="lata">🟡 Aluminio (Lata)</option>
+                                                        <option value="comun">⚫ Basura Común</option>
+                                                    </select>
+                                                </div>
+
+                                                {/* Quantity Selector */}
+                                                <div className="space-y-2">
+                                                    <label className="block text-xs font-semibold text-eco-gray uppercase tracking-wider">
+                                                        Cantidad (Unidades)
+                                                    </label>
+                                                    <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl overflow-hidden h-[41px]">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setManualCantidad(prev => Math.max(1, (typeof prev === 'number' ? prev : 1) - 1))}
+                                                            className="px-3 h-full hover:bg-gray-100 active:bg-gray-200 text-lg font-bold text-eco-green-dark transition-colors border-r border-gray-200"
+                                                        >
+                                                            -
+                                                        </button>
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            max="999"
+                                                            value={manualCantidad}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                if (val === '') {
+                                                                    setManualCantidad('');
+                                                                } else {
+                                                                    const parsed = parseInt(val, 10);
+                                                                    setManualCantidad(isNaN(parsed) ? 1 : Math.max(1, Math.min(999, parsed)));
+                                                                }
+                                                            }}
+                                                            onBlur={() => {
+                                                                if (manualCantidad === '') {
+                                                                    setManualCantidad(1);
+                                                                }
+                                                            }}
+                                                            className="w-full bg-transparent text-center text-sm font-bold text-eco-green-dark focus:outline-none"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setManualCantidad(prev => Math.min(999, (typeof prev === 'number' ? prev : 1) + 1))}
+                                                            className="px-3 h-full hover:bg-gray-100 active:bg-gray-200 text-lg font-bold text-eco-green-dark transition-colors border-l border-gray-200"
+                                                        >
+                                                            +
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Subtype Selector */}
+                                            <div className="space-y-2">
+                                                <label htmlFor="manual-subtype-select" className="block text-xs font-semibold text-eco-gray uppercase tracking-wider">
+                                                    Subtipo de Material
+                                                </label>
+                                                <select
+                                                    id="manual-subtype-select"
+                                                    value={manualSubtype}
+                                                    onChange={(e) => setManualSubtype(e.target.value)}
+                                                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-eco-green transition-colors font-medium text-eco-green-dark"
+                                                >
+                                                    {manualMaterial === 'plastico' && (
+                                                        <>
+                                                            <option value="Botella PET pequeña (< 600ml)">Botella PET pequeña (&lt; 600ml) [15 pts]</option>
+                                                            <option value="Botella PET grande (>= 600ml)">Botella PET grande (&gt;= 600ml) [15 pts]</option>
+                                                            <option value="Envase HDPE (Jugos/Lácteos)">Envase HDPE (Jugos/Lácteos) [15 pts]</option>
+                                                            <option value="Vaso Desechable Plástico">Vaso Desechable Plástico [15 pts]</option>
+                                                            <option value="otro">Otro plástico reciclable...</option>
+                                                        </>
+                                                    )}
+                                                    {manualMaterial === 'lata' && (
+                                                        <>
+                                                            <option value="Lata de Refresco/Bebida (Aluminio)">Lata de Refresco/Bebida (Aluminio) [20 pts]</option>
+                                                            <option value="Lata de Conservas (Hojalata)">Lata de Conservas (Hojalata) [20 pts]</option>
+                                                            <option value="Lata de Aluminio (Otros)">Lata de Aluminio (Otros) [20 pts]</option>
+                                                            <option value="otro">Otro metal/lata reciclable...</option>
+                                                        </>
+                                                    )}
+                                                    {manualMaterial === 'comun' && (
+                                                        <>
+                                                            <option value="Envolturas/Empaques de Snacks">Envolturas/Empaques de Snacks [0 pts]</option>
+                                                            <option value="Papel/Cartón Sucio">Papel/Cartón Sucio [0 pts]</option>
+                                                            <option value="Servilletas/Pañuelos Usados">Servilletas/Pañuelos Usados [0 pts]</option>
+                                                            <option value="otro">Otro residuo común...</option>
+                                                        </>
+                                                    )}
+                                                </select>
+                                            </div>
+
+                                            {/* Otro Input */}
+                                            {manualSubtype === 'otro' && (
+                                                <div className="space-y-2 animate-fade-in">
+                                                    <label htmlFor="manual-otro-detalle" className="block text-xs font-semibold text-eco-gray uppercase tracking-wider">
+                                                        Especificar Detalle del Material
+                                                    </label>
+                                                    <input
+                                                        id="manual-otro-detalle"
+                                                        type="text"
+                                                        placeholder="Ej. Envase de yogurt, Alambre de cobre, etc."
+                                                        value={manualOtroDetalle}
+                                                        onChange={(e) => setManualOtroDetalle(e.target.value)}
+                                                        className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-eco-green transition-all"
+                                                        required
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {/* Summary Calculation Box */}
+                                            <div className="bg-eco-cream/25 border border-dashed border-eco-green/20 rounded-2xl p-4 flex flex-col gap-2">
+                                                <div className="flex justify-between items-center text-xs text-eco-gray font-semibold">
+                                                    <span>Puntos por Unidad:</span>
+                                                    <span>
+                                                        {manualMaterial === 'plastico' ? '15 ⭐' : manualMaterial === 'lata' ? '20 ⭐' : '0 ⭐'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-xs text-eco-gray font-semibold">
+                                                    <span>CO₂ Evitado por Unidad:</span>
+                                                    <span>
+                                                        {manualMaterial === 'plastico' ? '0.05 kg' : manualMaterial === 'lata' ? '0.15 kg' : '0.00 kg'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between items-center pt-2 border-t border-dashed border-eco-green/10">
+                                                    <span className="text-sm font-bold text-eco-green-dark">Total Eco-Puntos a Sumar:</span>
+                                                    <span className="text-lg font-extrabold text-eco-green-dark">
+                                                        +{((manualMaterial === 'plastico' ? 15 : manualMaterial === 'lata' ? 20 : 0) * (Number(manualCantidad) || 1))} ⭐
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-xs">
+                                                    <span className="text-eco-gray font-semibold">Total CO₂ Evitado Estimado:</span>
+                                                    <span className="font-bold text-eco-green">
+                                                        +{((manualMaterial === 'plastico' ? 0.05 : manualMaterial === 'lata' ? 0.15 : 0) * (Number(manualCantidad) || 1)).toFixed(2)} kg
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Submit Button */}
+                                            <Button
+                                                type="submit"
+                                                variant="primary"
+                                                size="lg"
+                                                className="w-full shadow-lg shadow-eco-green/10"
+                                                disabled={!manualSelectedUser || manualIsSaving}
+                                                isLoading={manualIsSaving}
+                                            >
+                                                ✍️ Registrar Desechos y Asignar Puntos
+                                            </Button>
+                                        </div>
+                                    </form>
                                 </div>
                             )}
                         </>

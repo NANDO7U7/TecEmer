@@ -497,38 +497,44 @@ export default function CameraScanner({ userId, isAdmin = false, onScanComplete 
                             <label htmlFor="subtipo-select" className="block text-xs font-semibold text-eco-gray uppercase tracking-wider">
                                 Tipo específico de material
                             </label>
-                            <select
-                                id="subtipo-select"
-                                value={subtipo}
-                                onChange={(e) => setSubtipo(e.target.value)}
-                                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-eco-green/30 focus:border-eco-green transition-all bg-white font-medium text-eco-green-dark"
-                            >
-                                {scanResult.material === 'plastico' && (
-                                    <>
-                                        <option value="Botella PET pequeña (< 600ml)">Botella PET pequeña (&lt; 600ml)</option>
-                                        <option value="Botella PET grande (>= 600ml)">Botella PET grande (&gt;= 600ml)</option>
-                                        <option value="Envase HDPE (Jugos/Lácteos)">Envase HDPE (Jugos/Lácteos)</option>
-                                        <option value="Vaso Desechable Plástico">Vaso Desechable Plástico</option>
-                                        <option value="otro">Otro plástico reciclable...</option>
-                                    </>
-                                )}
-                                {scanResult.material === 'lata' && (
-                                    <>
-                                        <option value="Lata de Refresco/Bebida (Aluminio)">Lata de Refresco/Bebida (Aluminio)</option>
-                                        <option value="Lata de Conservas (Hojalata)">Lata de Conservas (Hojalata)</option>
-                                        <option value="Lata de Aluminio (Otros)">Lata de Aluminio (Otros)</option>
-                                        <option value="otro">Otro metal/lata reciclable...</option>
-                                    </>
-                                )}
-                                {scanResult.material === 'comun' && (
-                                    <>
-                                        <option value="Envolturas/Empaques de Snacks">Envolturas/Empaques de Snacks</option>
-                                        <option value="Papel/Cartón Sucio">Papel/Cartón Sucio</option>
-                                        <option value="Servilletas/Pañuelos Usados">Servilletas/Pañuelos Usados</option>
-                                        <option value="otro">Otro residuo común...</option>
-                                    </>
-                                )}
-                            </select>
+                            {isAdmin ? (
+                                <select
+                                    id="subtipo-select"
+                                    value={subtipo}
+                                    onChange={(e) => setSubtipo(e.target.value)}
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-eco-green/30 focus:border-eco-green transition-all bg-white font-medium text-eco-green-dark"
+                                >
+                                    {scanResult.material === 'plastico' && (
+                                        <>
+                                            <option value="Botella PET pequeña (< 600ml)">Botella PET pequeña (&lt; 600ml)</option>
+                                            <option value="Botella PET grande (>= 600ml)">Botella PET grande (&gt;= 600ml)</option>
+                                            <option value="Envase HDPE (Jugos/Lácteos)">Envase HDPE (Jugos/Lácteos)</option>
+                                            <option value="Vaso Desechable Plástico">Vaso Desechable Plástico</option>
+                                            <option value="otro">Otro plástico reciclable...</option>
+                                        </>
+                                    )}
+                                    {scanResult.material === 'lata' && (
+                                        <>
+                                            <option value="Lata de Refresco/Bebida (Aluminio)">Lata de Refresco/Bebida (Aluminio)</option>
+                                            <option value="Lata de Conservas (Hojalata)">Lata de Conservas (Hojalata)</option>
+                                            <option value="Lata de Aluminio (Otros)">Lata de Aluminio (Otros)</option>
+                                            <option value="otro">Otro metal/lata reciclable...</option>
+                                        </>
+                                    )}
+                                    {scanResult.material === 'comun' && (
+                                        <>
+                                            <option value="Envolturas/Empaques de Snacks">Envolturas/Empaques de Snacks</option>
+                                            <option value="Papel/Cartón Sucio">Papel/Cartón Sucio</option>
+                                            <option value="Servilletas/Pañuelos Usados">Servilletas/Pañuelos Usados</option>
+                                            <option value="otro">Otro residuo común...</option>
+                                        </>
+                                    )}
+                                </select>
+                            ) : (
+                                <div className="w-full px-4 py-3.5 rounded-xl border border-gray-100 bg-gray-50 text-sm font-semibold text-eco-green-dark">
+                                    {subtipo}
+                                </div>
+                            )}
                         </div>
 
                         {/* Otro input (si se selecciona 'otro') */}
